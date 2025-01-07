@@ -1,0 +1,19 @@
+[package]
+name = "bevy_rich_text3d"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = { version = "0.15.1", default-features = false, features = ["bevy_image", "bevy_render", "bevy_sprite", "bevy_text"] }
+cosmic-text = "0.12.1"
+thiserror = "2.0.9"
+zeno = "0.3.2"
+
+[profile.dev]
+opt-level = 3
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[dev-dependencies]
+bevy = "0.15.1"
