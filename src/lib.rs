@@ -1,17 +1,17 @@
+#![doc = include_str!("../README.md")]
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
-mod align;
 mod change_detection;
 mod color_table;
 mod fetch;
+mod misc;
 mod parse;
 mod render;
 mod styling;
 mod text3d;
-pub use align::*;
 use bevy::{
     app::{Plugin, PostUpdate},
-    asset::{AssetApp, AssetId, Assets, Handle},
+    asset::{AssetApp, AssetId, Assets},
     image::Image,
     pbr::StandardMaterial,
     prelude::{IntoSystemConfigs, IntoSystemSetConfigs, Resource, SystemSet, TransformSystem},
@@ -20,8 +20,8 @@ use bevy::{
 use change_detection::TouchMaterialSet;
 pub use change_detection::{TouchTextMaterial2dPlugin, TouchTextMaterialPlugin};
 pub use fetch::{FetchedTextSegment, TextFetch};
+pub use misc::*;
 pub use parse::ParseError;
-use render::new_image;
 pub use render::{TextAtlas, TextAtlasHandle};
 pub use styling::{SegmentStyle, Text3dStyling};
 pub use text3d::{Text3d, Text3dSegment};
@@ -60,10 +60,6 @@ pub struct Text3dPlugin;
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, SystemSet)]
 pub struct Text3dSet;
 
-/// The image used by [`TextAtlas::default()`].
-pub const DEFAULT_GLYPH_ATLAS: Handle<Image> =
-    Handle::weak_from_u128(0x9a5c50eb057602509c7836bb327807e1);
-
 impl Plugin for Text3dPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.init_asset::<TextAtlas>();
@@ -74,11 +70,10 @@ impl Plugin for Text3dPlugin {
             .default_atlas_dimension;
         app.world_mut()
             .resource_mut::<Assets<Image>>()
-            .insert(&DEFAULT_GLYPH_ATLAS, new_image(x, y));
-        app.world_mut().resource_mut::<Assets<TextAtlas>>().insert(
-            AssetId::default(),
-            TextAtlas::from_image(DEFAULT_GLYPH_ATLAS),
-        );
+            .insert(&TextAtlas::DEFAULT_IMAGE, TextAtlas::empty_image(x, y));
+        app.world_mut()
+            .resource_mut::<Assets<TextAtlas>>()
+            .insert(AssetId::default(), TextAtlas::new(TextAtlas::DEFAULT_IMAGE));
         app.add_systems(
             PostUpdate,
             (fetch::text_fetch_system, render::text_render)

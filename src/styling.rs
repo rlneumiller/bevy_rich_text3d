@@ -4,6 +4,7 @@ use std::{num::NonZeroU32, sync::Arc};
 
 use crate::{GlyphMeta, TextAlign};
 
+/// Default text style of a rich text component.
 #[derive(Debug, Component, Clone)]
 pub struct Text3dStyling {
     /// Size of the font, corresponding to world space units.
@@ -18,7 +19,7 @@ pub struct Text3dStyling {
     pub weight: Weight,
     /// Horizontal alignment of the font.
     pub align: TextAlign,
-    /// Where local `[0, 0]` is inside the text block.
+    /// Where local `[0, 0]` is inside the text block's Aabb.
     pub anchor: Anchor,
     /// Color of fill.
     pub color: Srgba,
@@ -28,7 +29,8 @@ pub struct Text3dStyling {
     pub fill: bool,
     /// If set, renders a stroke or outline of the font.
     ///
-    /// The value represents a percentage of the font size and should be in `1..10`.
+    /// The value represents a percentage of the font size and should be
+    /// in `1..10` for hollow text and `1..20` for outline.
     ///
     /// Ths is cached per unique value so be sure not to use too many of them.
     pub stroke: Option<NonZeroU32>,
@@ -68,6 +70,7 @@ impl Default for Text3dStyling {
     }
 }
 
+/// Text style of a segment.
 #[derive(Debug, Default, Clone)]
 pub struct SegmentStyle {
     pub font: Option<Arc<str>>,

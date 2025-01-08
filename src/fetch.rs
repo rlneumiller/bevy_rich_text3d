@@ -14,13 +14,14 @@ impl FetchedTextSegment {
 
 /// A usually generated component that fetches data as a string from the world.
 #[derive(Component)]
+#[require(FetchedTextSegment)]
 pub struct TextFetch {
     entity: Entity,
     fetch: Box<dyn FnMut(EntityRef) -> Option<String> + Send + Sync>,
 }
 
 impl TextFetch {
-    /// A text fetcher that fetches a string from a single component if the component changes.
+    /// Create a text fetcher that fetches a string from a single component if the component changes.
     pub fn fetch_component<C: Component>(
         entity: Entity,
         mut fetch: impl (FnMut(&C) -> String) + Send + Sync + 'static,
@@ -38,7 +39,7 @@ impl TextFetch {
         }
     }
 
-    /// A text fetcher that fetches from an [`EntityRef`].
+    /// Create a text fetcher that fetches from an [`EntityRef`].
     pub fn fetch_entity_ref(
         entity: Entity,
         fetch: impl (FnMut(EntityRef) -> Option<String>) + Send + Sync + 'static,

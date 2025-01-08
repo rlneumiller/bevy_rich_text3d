@@ -25,7 +25,7 @@ impl TextAlign {
 /// Determines what kind of data each field in `uv1` carry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum GlyphMeta {
-    /// Index of the glyph, `0`, `1`, etc.
+    /// Left to right count of the glyph, `0`, `1`, etc.
     #[default]
     Index,
     /// Returns x position in `em` of a vertex as if the text is rendered in a single line.
@@ -40,6 +40,7 @@ pub enum GlyphMeta {
     MagicNumber,
 }
 
+/// Determines the maximum width of rendered text, by default infinite.
 #[derive(Debug, Component)]
 pub struct Text3dBounds {
     pub width: f32,
@@ -51,6 +52,7 @@ impl Default for Text3dBounds {
     }
 }
 
+/// Size of the output mesh's `Aabb`.
 #[derive(Debug, Component, Default)]
 pub struct Text3dDimensionOut {
     pub dimension: Vec2,

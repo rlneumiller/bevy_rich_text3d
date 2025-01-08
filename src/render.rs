@@ -34,10 +34,11 @@ fn corners(rect: Rect) -> [[f32; 2]; 4] {
     ]
 }
 
+/// Backing image handle and atlas of [`Text3d`].
 #[derive(Debug, Clone, Default, TypePath, Asset)]
 pub struct TextAtlas {
-    pub image: Handle<Image>,
-    pub glyphs: HashMap<GlyphEntry, Rect>,
+    image: Handle<Image>,
+    glyphs: HashMap<GlyphEntry, Rect>,
     pointer: IVec2,
     descent: usize,
 }
@@ -59,11 +60,33 @@ pub(crate) fn new_image(width: usize, height: usize) -> Image {
 const PADDING: usize = 2;
 
 impl TextAtlas {
-    pub fn from_image(image: Handle<Image>) -> Self {
+    /// The image used by [`TextAtlas::default()`].
+    pub const DEFAULT_IMAGE: Handle<Image> =
+        Handle::weak_from_u128(0x9a5c50eb057602509c7836bb327807e1);
+
+    /// Create a new empty [`TextAtlas`].
+    ///
+    /// The image can be created via [`TextAtlas::empty_image`].
+    pub fn new(image: Handle<Image>) -> Self {
         Self {
             image,
             ..Default::default()
         }
+    }
+
+    /// Create an empty [`Image`] filled will `(255, 255, 255, 0)`.
+    pub fn empty_image(width: usize, height: usize) -> Image {
+        Image::new(
+            Extent3d {
+                width: width as u32,
+                height: height as u32,
+                depth_or_array_layers: 1,
+            },
+            TextureDimension::D2,
+            vec![[255, 255, 255, 0]; width * height].into_flattened(),
+            TextureFormat::Rgba8Unorm,
+            RenderAssetUsages::all(),
+        )
     }
 
     pub fn cache(
@@ -119,6 +142,9 @@ impl TextAtlas {
     }
 }
 
+/// [`Component`] of a [`Handle<TextAtlas>`](TextAtlas), if left as default,
+/// will use the shared [`TextAtlas::DEFAULT_IMAGE`] as
+/// the underlying image.
 #[derive(Debug, Clone, Component, Default)]
 pub struct TextAtlasHandle(pub Handle<TextAtlas>);
 
@@ -312,17 +338,25 @@ pub fn text_render(
                         attrs.stroke_color.unwrap_or(styling.stroke_color),
                         0.,
                     )],
-                    (true, Some(stroke)) => &[
+                    (true, Some(stroke)) if styling.stroke_offset > 0.0 => &[
                         (
                             None,
                             attrs.fill_color.unwrap_or(styling.color),
-                            (-styling.stroke_offset).max(0.),
+                            styling.stroke_offset,
                         ),
                         (
                             Some(stroke),
                             attrs.stroke_color.unwrap_or(styling.stroke_color),
-                            styling.stroke_offset.max(0.),
+                            0.,
                         ),
+                    ],
+                    (true, Some(stroke)) => &[
+                        (
+                            Some(stroke),
+                            attrs.stroke_color.unwrap_or(styling.stroke_color),
+                            -styling.stroke_offset,
+                        ),
+                        (None, attrs.fill_color.unwrap_or(styling.color), 0.),
                     ],
                     (false, None) => &[],
                 };

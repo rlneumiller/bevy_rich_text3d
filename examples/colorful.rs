@@ -13,7 +13,7 @@ use bevy::{
 };
 use bevy_rich_text3d::{
     FetchedTextSegment, LoadSystemFontPlugin, ParseError, Text3d, Text3dBounds, Text3dPlugin,
-    Text3dPluginSettings, Text3dSegment, Text3dStyling, DEFAULT_GLYPH_ATLAS,
+    Text3dPluginSettings, Text3dSegment, Text3dStyling, TextAlign, TextAtlas,
 };
 
 #[derive(Debug, Component)]
@@ -35,14 +35,14 @@ pub fn main() {
         .add_systems(Startup, |mut commands: Commands, mut standard_materials: ResMut<Assets<StandardMaterial>>| {
             let mat = standard_materials.add(
                 StandardMaterial {
-                    base_color_texture: Some(DEFAULT_GLYPH_ATLAS.clone()),
+                    base_color_texture: Some(TextAtlas::DEFAULT_IMAGE.clone()),
                     alpha_mode: AlphaMode::Blend,
                     unlit: true,
                     ..Default::default()
                 }
             );
             let text = Text3d::parse(
-                "{s-4, s-black:<Time Bomb>}: Deals {orange:explosion} damage equal to {red:*fps*}, which is {s-4, s-black, red:{fps}}!", 
+                "{s-20, s-black:<Time Bomb>}: Deals {orange:**explosion**} damage equal to {red:*fps*}, which is {s-20, s-black, red:{fps}}!", 
                 |s| {
                     if s == "fps" {
                         Ok(Text3dSegment::Extract(
@@ -59,6 +59,7 @@ pub fn main() {
                 Text3dStyling {
                     size: 32.,
                     color: Srgba::new(0., 1., 1., 1.),
+                    align: TextAlign::Center,
                     ..Default::default()
                 },
                 Text3dBounds {

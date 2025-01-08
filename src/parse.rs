@@ -57,7 +57,7 @@ impl Text3d {
     ///
     /// Without `:` values in brackets are treated as dynamic values and passed to the `fetch_string` function.
     /// The result should either be a string fetched from the world
-    /// or an [`Entity`] with a [`FetchedTextSegment`](crate::FetchedTextSegment) component.
+    /// or an [`Entity`](bevy::prelude::Entity) with a [`FetchedTextSegment`](crate::FetchedTextSegment) component.
     ///
     ///
     /// ## Markdown
@@ -102,10 +102,10 @@ impl Text3d {
         let mut styles = vec![SegmentStyle::default()];
         macro_rules! style {
             () => {
-                styles.last().ok_or(ParseError::HierarchyMismatch)?
+                styles.last().ok_or(ParseError::BracketMismatch)?
             };
             (mut) => {
-                styles.last_mut().ok_or(ParseError::HierarchyMismatch)?
+                styles.last_mut().ok_or(ParseError::BracketMismatch)?
             };
         }
         use ParseState::*;
@@ -240,18 +240,19 @@ fn push_segment(
     if !buffer.is_empty() {
         spans.push((
             Text3dSegment::String(buffer.into()),
-            styles.last().ok_or(ParseError::HierarchyMismatch)?.clone(),
+            styles.last().ok_or(ParseError::BracketMismatch)?.clone(),
         ));
     }
     Ok(())
 }
 
+/// Error emitted when parsing rich text.
 #[derive(Debug, thiserror::Error)]
 pub enum ParseError {
     #[error("Feature {0} is not supported.")]
     NotSupported(&'static str),
-    #[error("Brackets mismatch.")]
-    HierarchyMismatch,
+    #[error("Bracket mismatch.")]
+    BracketMismatch,
     #[error("Bad command: {0}")]
     BadCommand(String),
     #[error("Style {0} missing.")]

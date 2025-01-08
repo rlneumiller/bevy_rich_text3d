@@ -1,0 +1,178 @@
+use std::str::FromStr;
+
+use bevy::{
+    app::{App, PostStartup, Startup, Update},
+    asset::Assets,
+    color::{Color, Srgba},
+    math::Vec3,
+    pbr::{AmbientLight, MeshMaterial3d, StandardMaterial},
+    prelude::{
+        AlphaMode, Camera3d, Commands, Component, Entity, Local, Mesh3d, OrthographicProjection,
+        Projection, Query, Res, ResMut, Resource, Transform,
+    },
+    time::{Time, Virtual},
+    utils::hashbrown::HashMap,
+    DefaultPlugins,
+};
+use bevy_rich_text3d::{
+    LoadSystemFontPlugin, ParseError, Text3d, Text3dBounds, Text3dPlugin, Text3dPluginSettings,
+    Text3dSegment, Text3dStyling, TextAlign, TextAtlas, TextFetch,
+};
+
+#[derive(Debug, Component)]
+pub struct Unit(&'static str);
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub enum Stat {
+    Strength,
+    Intellect,
+    Agility,
+    Defense,
+    Stamina,
+}
+
+impl FromStr for Stat {
+    type Err = ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "strength" => Stat::Strength,
+            "intellect" => Stat::Intellect,
+            "agility" => Stat::Agility,
+            "defense" => Stat::Defense,
+            "stamina" => Stat::Stamina,
+            s => return Err(ParseError::BadCommand(format!("Unknown stat {s}."))),
+        })
+    }
+}
+
+#[derive(Debug, Component)]
+pub struct StatMap(HashMap<Stat, i32>);
+
+#[derive(Debug, Resource)]
+pub struct NameToUnit(HashMap<String, Entity>);
+
+pub fn main() {
+    let mut app = App::new();
+    app.add_plugins(DefaultPlugins)
+        .insert_resource(Text3dPluginSettings {
+            default_atlas_dimension: (512, 512),
+            scale_factor: 2.,
+        })
+        .add_plugins(Text3dPlugin)
+        .add_plugins(LoadSystemFontPlugin)
+        .insert_resource(AmbientLight {
+            color: Color::WHITE,
+            brightness: 800.,
+        });
+    app.world_mut().spawn((
+        Unit("Samuel"),
+        StatMap(HashMap::from([
+            (Stat::Strength, 1),
+            (Stat::Intellect, 2),
+            (Stat::Agility, 3),
+            (Stat::Defense, 4),
+            (Stat::Stamina, 5),
+        ])),
+    ));
+    app.world_mut().spawn((
+        Unit("Catalina"),
+        StatMap(HashMap::from([
+            (Stat::Strength, 5),
+            (Stat::Intellect, 5),
+            (Stat::Agility, 5),
+            (Stat::Defense, 5),
+            (Stat::Stamina, 5),
+        ])),
+    ));
+    app.world_mut().spawn((
+        Unit("Rufus"),
+        StatMap(HashMap::from([
+            (Stat::Strength, 5),
+            (Stat::Intellect, 5),
+            (Stat::Agility, 5),
+            (Stat::Defense, 5),
+            (Stat::Stamina, 5),
+        ])),
+    ));
+
+    app.add_systems(
+        Startup,
+        |mut commands: Commands, units: Query<(Entity, &Unit)>| {
+            commands.insert_resource(NameToUnit(
+                units.iter().map(|(e, n)| (n.0.to_lowercase(), e)).collect(),
+            ));
+        },
+    );
+
+    app.add_systems(PostStartup, |mut commands: Commands, name_to_unit: Res<NameToUnit>, mut standard_materials: ResMut<Assets<StandardMaterial>>| {
+            let mat = standard_materials.add(
+                StandardMaterial {
+                    base_color_texture: Some(TextAtlas::DEFAULT_IMAGE.clone()),
+                    alpha_mode: AlphaMode::Blend,
+                    unlit: true,
+                    ..Default::default()
+                }
+            );
+            let text = Text3d::parse(
+                "**Samuel**\nStrength: {Samuel.Strength}\nIntellect: {Samuel.Intellect}\nAgility: {Samuel.Agility}\nDefense: {Samuel.Defense}\nStamina: {Samuel.Stamina}", 
+                |s| {
+                    let vec: Vec<_> = s.split('.').collect();
+                    if let [name, stat] = vec.as_slice() {
+                        let stat = Stat::from_str(stat)?;
+                        let unit = *name_to_unit.0.get(*name)
+                            .ok_or(ParseError::Custom(format!("Unknown unit {name}.")))?;
+                        Ok(Text3dSegment::Extract(
+                            commands.spawn(TextFetch::fetch_component::<StatMap>(unit, move |map| {
+                                map.0.get(&stat).copied().unwrap_or_default().to_string()
+                            })).id()
+                        ))
+                    } else {
+                        Err(ParseError::Custom("".to_owned()))
+                    }
+                },
+                |s| Err(ParseError::Custom(format!("Bad style {s}."))),
+            ).unwrap();
+            commands.spawn((
+                text,
+                Text3dStyling {
+                    size: 32.,
+                    color: Srgba::new(0., 1., 1., 1.),
+                    align: TextAlign::Center,
+                    ..Default::default()
+                },
+                Text3dBounds {
+                    width: 400.,
+                },
+                Mesh3d::default(),
+                MeshMaterial3d(mat.clone()),
+            ));
+
+            commands.spawn((
+                Camera3d::default(),
+                Projection::Orthographic(OrthographicProjection::default_3d()),
+                Transform::from_translation(Vec3::new(0., 0., 1.))
+                    .looking_at(Vec3::new(0., 0., 0.), Vec3::Y)
+            ));
+        });
+    app.add_systems(Update, randomize_stats);
+    app.run();
+}
+
+fn randomize_stats(
+    mut timer: Local<f32>,
+    time: Res<Time<Virtual>>,
+    mut query: Query<&mut StatMap>,
+) {
+    *timer += time.delta_secs();
+    if *timer > 5.0 {
+        *timer -= 5.0;
+
+        for mut stats in &mut query {
+            stats
+                .0
+                .iter_mut()
+                .for_each(|(_, v)| *v = fastrand::i32(0..10));
+        }
+    }
+}

@@ -18,7 +18,7 @@ use bevy::{
 };
 use bevy_rich_text3d::{
     GlyphMeta, LoadSystemFontPlugin, Text3d, Text3dBounds, Text3dPlugin, Text3dPluginSettings,
-    Text3dStyling, TextAlign, DEFAULT_GLYPH_ATLAS,
+    Text3dStyling, TextAlign, TextAtlas,
 };
 
 #[derive(Debug, Clone, TypePath, AsBindGroup, Asset)]
@@ -57,7 +57,7 @@ pub fn main() {
             let mat = mats.add(
                 ExtendedMaterial {
                     base: StandardMaterial {
-                        base_color_texture: Some(DEFAULT_GLYPH_ATLAS.clone_weak()),
+                        base_color_texture: Some(TextAtlas::DEFAULT_IMAGE.clone_weak()),
                         alpha_mode: AlphaMode::Blend,
                         unlit: true,
                         ..Default::default()

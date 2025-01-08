@@ -14,7 +14,7 @@ use bevy::{
 };
 use bevy_rich_text3d::{
     LoadSystemFontPlugin, Text3d, Text3dBounds, Text3dPlugin, Text3dPluginSettings, Text3dStyling,
-    DEFAULT_GLYPH_ATLAS,
+    TextAtlas,
 };
 
 pub fn main() {
@@ -36,7 +36,7 @@ pub fn main() {
              server: Res<AssetServer>,
              mut standard_materials: ResMut<Assets<StandardMaterial>>| {
                 let mat = standard_materials.add(StandardMaterial {
-                    base_color_texture: Some(DEFAULT_GLYPH_ATLAS.clone_weak()),
+                    base_color_texture: Some(TextAtlas::DEFAULT_IMAGE.clone_weak()),
                     alpha_mode: AlphaMode::Blend,
                     unlit: true,
                     ..Default::default()
