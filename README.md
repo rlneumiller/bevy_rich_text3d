@@ -1,6 +1,10 @@
 # bevy_rich_text3d
 
-Mesh based raster text implementation for `bevy`.
+[![Crates.io](https://img.shields.io/crates/v/bevy_rich_text3d.svg)](https://crates.io/crates/bevy_rich_text3d)
+[![Docs](https://docs.rs/bevy_rich_text3d/badge.svg)](https://docs.rs/bevy_rich_text3d/latest/bevy_rich_text3d/)
+[![Bevy tracking](https://img.shields.io/badge/Bevy%20tracking-released%20version-lightblue)](https://bevyengine.org/learn/book/plugin-development/)
+
+Mesh based raster rich text implementation for `bevy`.
 
 ## Overview
 
