@@ -8,6 +8,8 @@ use crate::{
 };
 
 /// A rich text component.
+/// 
+/// Requires [`Text3dStyling`], [`Text3dBounds`], [`TextAtlasHandle`], [`Text3dDimensionOut`].
 #[derive(Debug, Component)]
 #[require(Text3dDimensionOut, Text3dBounds, TextAtlasHandle, Text3dStyling)]
 #[component(on_remove = text_3d_on_remove)]
@@ -16,6 +18,8 @@ pub struct Text3d {
 }
 
 /// A string segment in [`Text3d`].
+/// 
+/// `Extract` reads data from an entity's [`FetchedTextSegment`](crate::FetchedTextSegment) component.
 #[derive(Debug)]
 pub enum Text3dSegment {
     String(String),

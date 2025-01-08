@@ -15,7 +15,17 @@ like glyph count, glyph position or user defined magic numbers via the `uv1` fie
 
 ## Getting Started
 
-Simply spawn a bundle like this:
+Add plugins:
+
+```rust, ignore
+app.insert_resource(Text3dPluginSettings {
+        default_atlas_dimension: (512, 512),
+        scale_factor: 2.,
+    })
+    .add_plugins(Text3dPlugin)
+```
+
+Spawn a `Text3d`.
 
 ```rust, ignore
 commands.spawn(
