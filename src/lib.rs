@@ -10,16 +10,11 @@ mod render;
 mod styling;
 mod text3d;
 use bevy::{
-    app::{Plugin, PostUpdate},
-    asset::{AssetApp, AssetId, Assets},
-    image::Image,
-    pbr::StandardMaterial,
-    prelude::{IntoSystemConfigs, IntoSystemSetConfigs, Resource, SystemSet, TransformSystem},
-    text::CosmicFontSystem,
+    app::{Plugin, PostUpdate}, asset::{AssetApp, AssetId, Assets}, image::Image, pbr::StandardMaterial, prelude::{IntoSystemConfigs, IntoSystemSetConfigs, Resource, SystemSet, TransformSystem}, sprite::ColorMaterial, text::CosmicFontSystem
 };
 use change_detection::TouchMaterialSet;
 pub use change_detection::{TouchTextMaterial2dPlugin, TouchTextMaterialPlugin};
-pub use fetch::{FetchedTextSegment, TextFetch};
+pub use fetch::{FetchedTextSegment, SharedTextSegment, TextFetch};
 pub use misc::*;
 pub use parse::ParseError;
 pub use render::{TextAtlas, TextAtlasHandle};
@@ -86,6 +81,7 @@ impl Plugin for Text3dPlugin {
             Text3dSet.before(TransformSystem::TransformPropagate),
         );
         app.configure_sets(PostUpdate, TouchMaterialSet.in_set(Text3dSet));
+        app.add_plugins(TouchTextMaterial2dPlugin::<ColorMaterial>::default());
         app.add_plugins(TouchTextMaterialPlugin::<StandardMaterial>::default());
     }
 }

@@ -54,7 +54,7 @@ and `{value}`, which acts as a dynamic value that can be fetched from the world.
 
 See documentation on `Text3d::parse` for up-to-date syntax.
 
-## Tech Stack
+## Dependencies
 
 * `cosmic_text`
 
@@ -94,6 +94,11 @@ This is a band-aid solution intended to be removed later as we wait for a fix up
 
 You should set `scale_factor` in `Text3dPluginSettings`.
 Note the corresponding value may not be initialized on `Window` during app creation.
+
+* My game is stuttering
+
+The crate is experimental and currently does not have concurrency support.
+Future releases will attempt to address this issue.
 
 ## Versions
 

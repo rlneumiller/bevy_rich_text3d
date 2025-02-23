@@ -1,6 +1,13 @@
 use bevy::prelude::{Component, DetectChanges, Entity, EntityRef, Query, Without};
 
+/// Prevent [`Text3d`](crate::Text3d) from despawning a [`FetchedTextSegment`] on remove.
+#[derive(Debug, Component, Default)]
+pub struct SharedTextSegment;
+
 /// A string segment on a component, as opposed to in a [`Text3d`](crate::Text3d).
+///
+/// By default [`Text3d`](crate::Text3d) removes all [`FetchedTextSegment`] on remove,
+/// add [`SharedTextSegment`] to prevent this behavior.
 #[derive(Debug, Component, Default)]
 pub struct FetchedTextSegment(pub String);
 
@@ -12,7 +19,7 @@ impl FetchedTextSegment {
     }
 }
 
-/// A usually generated component that fetches data as a string from the world.
+/// A component that fetches data as a string from the world.
 #[derive(Component)]
 #[require(FetchedTextSegment)]
 pub struct TextFetch {
