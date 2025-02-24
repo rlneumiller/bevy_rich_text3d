@@ -45,7 +45,7 @@ fn synchronize_scale_factor(
     mut atlases: ResMut<Assets<TextAtlas>>,
     mut images: ResMut<Assets<Image>>,
 ) {
-    if settings.sync_scale_factor_wih_main_window {
+    if settings.sync_scale_factor_with_main_window {
         if let Ok(window) = main_window.get_single() {
             if window.scale_factor() != settings.scale_factor {
                 settings.scale_factor = window.scale_factor();
@@ -73,7 +73,7 @@ pub struct Text3dPlugin {
     pub scale_factor: f32,
     /// Currently the [`Window`]'s scale factor is not correct at app startup,
     /// if true this synchronizes scale factor with the [`PrimaryWindow`]'s stats.
-    pub sync_scale_factor_wih_main_window: bool,
+    pub sync_scale_factor_with_main_window: bool,
     /// System locale, like `en-US`.
     pub locale: Option<String>,
     /// If true, load system fonts,
@@ -97,7 +97,7 @@ impl Default for Text3dPlugin {
         Self {
             default_atlas_dimension: (512, 512),
             scale_factor: 1.0,
-            sync_scale_factor_wih_main_window: true,
+            sync_scale_factor_with_main_window: true,
             load_system_fonts: false,
             load_font_paths: vec![],
             load_font_directories: vec![],
