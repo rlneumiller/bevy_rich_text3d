@@ -1,6 +1,6 @@
 [package]
 name = "bevy_rich_text3d"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 authors = ["Mincong Lu <mintlux667@gmail.com>"]
@@ -13,9 +13,15 @@ Mesh based raster rich text implementation for bevy.
 """
 keywords = ["bevy", "text", "font"]
 
+[features]
+default = ["2d", "3d"]
+2d = ["bevy/bevy_sprite"]
+3d = ["bevy/bevy_pbr"]
+
 [dependencies]
-bevy = { version = "0.15.1", default-features = false, features = ["bevy_image", "bevy_render", "bevy_sprite", "bevy_text", "bevy_pbr"] }
+bevy = { version = "0.15.1", default-features = false, features = ["bevy_image", "bevy_render", "bevy_asset", "bevy_window"] }
 cosmic-text = "0.12.1"
+sys-locale = "0.3.2"
 thiserror = "2.0.9"
 zeno = "0.3.2"
 

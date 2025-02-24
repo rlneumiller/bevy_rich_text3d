@@ -15,8 +15,8 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_rich_text3d::{
-    LoadSystemFontPlugin, ParseError, Text3d, Text3dBounds, Text3dPlugin, Text3dPluginSettings,
-    Text3dSegment, Text3dStyling, TextAlign, TextAtlas, TextFetch,
+    ParseError, Text3d, Text3dBounds, Text3dPlugin, Text3dSegment, Text3dStyling, TextAlign,
+    TextAtlas, TextFetch,
 };
 
 #[derive(Debug, Component)]
@@ -55,12 +55,10 @@ pub struct NameToUnit(HashMap<String, Entity>);
 pub fn main() {
     let mut app = App::new();
     app.add_plugins(DefaultPlugins)
-        .insert_resource(Text3dPluginSettings {
-            default_atlas_dimension: (512, 512),
-            scale_factor: 2.,
+        .add_plugins(Text3dPlugin {
+            load_system_fonts: true,
+            ..Default::default()
         })
-        .add_plugins(Text3dPlugin)
-        .add_plugins(LoadSystemFontPlugin)
         .insert_resource(AmbientLight {
             color: Color::WHITE,
             brightness: 800.,

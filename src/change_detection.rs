@@ -6,12 +6,14 @@
 
 use std::marker::PhantomData;
 
+#[cfg(feature = "3d")]
+use bevy::pbr::{Material, MeshMaterial3d};
+#[cfg(feature = "2d")]
+use bevy::sprite::{Material2d, MeshMaterial2d};
 use bevy::{
     app::{Plugin, PostUpdate},
     asset::Assets,
-    pbr::{Material, MeshMaterial3d},
     prelude::{Changed, IntoSystemConfigs, Query, ResMut, SystemSet},
-    sprite::{Material2d, MeshMaterial2d},
 };
 
 use crate::Text3dDimensionOut;
@@ -51,15 +53,18 @@ macro_rules! impl_mat {
     };
 }
 
-impl_mat!(
-    TouchTextMaterialPlugin,
-    Material,
-    MeshMaterial3d,
-    touch_text_material
-);
+#[cfg(feature = "2d")]
 impl_mat!(
     TouchTextMaterial2dPlugin,
     Material2d,
     MeshMaterial2d,
     touch_text_material2d
+);
+
+#[cfg(feature = "3d")]
+impl_mat!(
+    TouchTextMaterial3dPlugin,
+    Material,
+    MeshMaterial3d,
+    touch_text_material
 );

@@ -15,10 +15,7 @@ use bevy::{
     render::render_resource::{AsBindGroup, ShaderRef},
     DefaultPlugins,
 };
-use bevy_rich_text3d::{
-    GlyphMeta, LoadSystemFontPlugin, Text3d, Text3dPlugin, Text3dPluginSettings, Text3dStyling,
-    TextAtlas,
-};
+use bevy_rich_text3d::{GlyphMeta, Text3d, Text3dPlugin, Text3dStyling, TextAtlas};
 
 #[derive(Debug, Clone, TypePath, AsBindGroup, Asset)]
 pub struct SpookyShader {
@@ -38,12 +35,11 @@ pub fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(MaterialPlugin::<ExtendedMaterial<StandardMaterial, SpookyShader>>::default())
-        .insert_resource(Text3dPluginSettings {
+        .add_plugins(Text3dPlugin {
             default_atlas_dimension: (1024, 512),
-            scale_factor: 2.,
+            load_system_fonts: true,
+            ..Default::default()
         })
-        .add_plugins(Text3dPlugin)
-        .add_plugins(LoadSystemFontPlugin)
         .insert_resource(AmbientLight {
             color: Color::WHITE,
             brightness: 800.,

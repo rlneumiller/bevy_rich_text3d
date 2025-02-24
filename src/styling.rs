@@ -1,8 +1,52 @@
-use bevy::{color::Srgba, math::FloatOrd, prelude::Component, sprite::Anchor};
+use bevy::{
+    color::Srgba,
+    math::{FloatOrd, Vec2},
+    prelude::Component,
+};
 use cosmic_text::{fontdb::ID, Attrs, Family, Style, Weight};
-use std::{num::NonZeroU32, sync::Arc};
+use std::{
+    num::NonZeroU32,
+    ops::{Deref, DerefMut},
+    sync::Arc,
+};
 
 use crate::{GlyphMeta, TextAlign};
+
+/// Anchor of a text block, usually in `(-0.5, -0.5)..=(0.5, 0.5)`.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct TextAnchor(pub Vec2);
+
+impl Deref for TextAnchor {
+    type Target = Vec2;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for TextAnchor {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl TextAnchor {
+    pub const BOTTOM_LEFT: TextAnchor = TextAnchor::new(-0.5, -0.5);
+    pub const BOTTOM_CENTER: TextAnchor = TextAnchor::new(0., -0.5);
+    pub const BOTTOM_RIGHT: TextAnchor = TextAnchor::new(0.5, -0.5);
+
+    pub const CENTER_LEFT: TextAnchor = TextAnchor::new(-0.5, 0.);
+    pub const CENTER: TextAnchor = TextAnchor::new(0., 0.);
+    pub const CENTER_RIGHT: TextAnchor = TextAnchor::new(0.5, 0.);
+
+    pub const TOP_LEFT: TextAnchor = TextAnchor::new(-0.5, 0.5);
+    pub const TOP_CENTER: TextAnchor = TextAnchor::new(0., 0.5);
+    pub const TOP_RIGHT: TextAnchor = TextAnchor::new(0.5, 0.5);
+
+    pub const fn new(x: f32, y: f32) -> Self {
+        TextAnchor(Vec2::new(x, y))
+    }
+}
 
 /// Default text style of a rich text component.
 #[derive(Debug, Component, Clone)]
@@ -20,7 +64,7 @@ pub struct Text3dStyling {
     /// Horizontal alignment of the font.
     pub align: TextAlign,
     /// Where local `[0, 0]` is inside the text block's Aabb.
-    pub anchor: Anchor,
+    pub anchor: TextAnchor,
     /// Color of fill.
     pub color: Srgba,
     /// Color of stroke.
@@ -59,7 +103,7 @@ impl Default for Text3dStyling {
             style: Default::default(),
             weight: Default::default(),
             align: Default::default(),
-            anchor: Anchor::Center,
+            anchor: TextAnchor::CENTER,
             stroke_color: Srgba::WHITE,
             fill: true,
             stroke: Default::default(),

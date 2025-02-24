@@ -1,9 +1,15 @@
 //! Tests atlas height doubling works correctly.
+//!
+//! Atlas should be squished.
+//!
+//! Should fail eventually if reached wgpu's texture limit.
 
 use bevy::{
-    app::{App, Startup},
+    app::{App, Startup, Update},
     asset::{AssetServer, Assets},
     color::{Color, Srgba},
+    ecs::{event::EventReader, system::Query},
+    input::keyboard::{KeyCode, KeyboardInput},
     math::{Vec2, Vec3},
     pbr::{AmbientLight, MeshMaterial3d, StandardMaterial},
     prelude::{
@@ -12,20 +18,17 @@ use bevy::{
     },
     DefaultPlugins,
 };
-use bevy_rich_text3d::{
-    LoadSystemFontPlugin, Text3d, Text3dBounds, Text3dPlugin, Text3dPluginSettings, Text3dStyling,
-    TextAtlas,
-};
+use bevy_rich_text3d::{Text3d, Text3dBounds, Text3dPlugin, Text3dStyling, TextAtlas};
 
 pub fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .insert_resource(Text3dPluginSettings {
+        .add_plugins(Text3dPlugin {
             default_atlas_dimension: (1024, 512),
             scale_factor: 2.,
+            load_system_fonts: true,
+            ..Default::default()
         })
-        .add_plugins(Text3dPlugin)
-        .add_plugins(LoadSystemFontPlugin)
         .insert_resource(AmbientLight {
             color: Color::WHITE,
             brightness: 800.,
@@ -67,5 +70,19 @@ pub fn main() {
                 ));
             },
         )
+        .add_systems(Update, increment_on_space_press)
         .run();
+}
+
+pub fn increment_on_space_press(
+    mut input: EventReader<KeyboardInput>,
+    mut query: Query<&mut Text3dStyling>,
+) {
+    for key in input.read() {
+        if key.key_code == KeyCode::Space {
+            for mut style in &mut query {
+                style.size += 0.1;
+            }
+        }
+    }
 }

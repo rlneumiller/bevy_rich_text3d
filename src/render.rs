@@ -9,20 +9,19 @@ use bevy::{
         mesh::{Indices, PrimitiveTopology, VertexAttributeValues},
         render_resource::{Extent3d, TextureDimension, TextureFormat},
     },
-    text::CosmicFontSystem,
     utils::HashMap,
 };
 use cosmic_text::{
     ttf_parser::{Face, GlyphId, OutlineBuilder},
     Attrs, Buffer, Family, Metrics, Shaping, Wrap,
 };
-use zeno::{Cap, Command, Format, Mask, Stroke, Style, Transform, Vector};
+use zeno::{Cap, Command as ZCommand, Format, Mask, Stroke, Style, Transform, Vector};
 
 use crate::{
     fetch::FetchedTextSegment,
     styling::GlyphEntry,
     text3d::{Text3d, Text3dSegment},
-    GlyphMeta, Text3dBounds, Text3dDimensionOut, Text3dPluginSettings, Text3dStyling,
+    GlyphMeta, Rt3dCosmicFontSystem, Text3dBounds, Text3dDimensionOut, Text3dPlugin, Text3dStyling,
 };
 
 fn corners(rect: Rect) -> [[f32; 2]; 4] {
@@ -89,6 +88,7 @@ impl TextAtlas {
         )
     }
 
+    /// Cache a glyph.
     pub fn cache(
         &mut self,
         images: &mut Assets<Image>,
@@ -139,6 +139,20 @@ impl TextAtlas {
         self.pointer.x += dimension.x + PADDING as i32;
 
         output
+    }
+
+    /// Clear all cached glyphs and repaint the image as transparent white.
+    pub fn clear(&mut self, images: &mut Assets<Image>) {
+        self.pointer = IVec2::ZERO;
+        self.glyphs.clear();
+        if let Some(img) = images.get_mut(self.image.id()) {
+            for chunk in img.data.chunks_mut(4) {
+                chunk[0] = 255;
+                chunk[1] = 255;
+                chunk[2] = 255;
+                chunk[3] = 0;
+            }
+        }
     }
 }
 
@@ -197,8 +211,8 @@ fn center_aabb_on_anchor(items: &[[f32; 3]], anchor: Vec2) -> (Vec2, Vec2, Vec2)
 }
 
 pub fn text_render(
-    settings: Res<Text3dPluginSettings>,
-    mut font_system: ResMut<CosmicFontSystem>,
+    settings: Res<Text3dPlugin>,
+    mut font_system: ResMut<Rt3dCosmicFontSystem>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut images: ResMut<Assets<Image>>,
     mut atlases: ResMut<Assets<TextAtlas>>,
@@ -494,8 +508,7 @@ pub fn text_render(
             continue;
         };
 
-        let (dimension, offset, bb_min) =
-            center_aabb_on_anchor(&positions, styling.anchor.as_vec());
+        let (dimension, offset, bb_min) = center_aabb_on_anchor(&positions, *styling.anchor);
 
         for (meta_type, i) in [(styling.uv1.0, 0), (styling.uv1.1, 1)] {
             match meta_type {
@@ -540,25 +553,25 @@ pub fn text_render(
 
 #[derive(Debug, Default)]
 struct CommandEncoder {
-    commands: Vec<Command>,
+    commands: Vec<ZCommand>,
 }
 
 impl OutlineBuilder for CommandEncoder {
     fn move_to(&mut self, x: f32, y: f32) {
-        self.commands.push(Command::MoveTo(Vector::new(x, y)));
+        self.commands.push(ZCommand::MoveTo(Vector::new(x, y)));
     }
 
     fn line_to(&mut self, x: f32, y: f32) {
-        self.commands.push(Command::LineTo(Vector::new(x, y)));
+        self.commands.push(ZCommand::LineTo(Vector::new(x, y)));
     }
 
     fn quad_to(&mut self, x1: f32, y1: f32, x: f32, y: f32) {
         self.commands
-            .push(Command::QuadTo(Vector::new(x1, y1), Vector::new(x, y)));
+            .push(ZCommand::QuadTo(Vector::new(x1, y1), Vector::new(x, y)));
     }
 
     fn curve_to(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32) {
-        self.commands.push(Command::CurveTo(
+        self.commands.push(ZCommand::CurveTo(
             Vector::new(x1, y1),
             Vector::new(x2, y2),
             Vector::new(x, y),
@@ -566,6 +579,6 @@ impl OutlineBuilder for CommandEncoder {
     }
 
     fn close(&mut self) {
-        self.commands.push(Command::Close);
+        self.commands.push(ZCommand::Close);
     }
 }
