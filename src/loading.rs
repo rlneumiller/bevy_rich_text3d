@@ -1,6 +1,6 @@
 use std::sync::{Arc, OnceLock};
 
-use crate::{Rt3dCosmicFontSystem, Text3dPlugin};
+use crate::{TextRenderer, Text3dPlugin};
 use bevy::{
     ecs::system::{Commands, ResMut, Resource},
     log::error,
@@ -9,10 +9,10 @@ use bevy::{
 use cosmic_text::fontdb::Database;
 
 #[derive(Debug, Resource)]
-pub struct LoadCosmicFonts(pub(crate) Arc<OnceLock<Rt3dCosmicFontSystem>>);
+pub struct LoadCosmicFonts(pub(crate) Arc<OnceLock<TextRenderer>>);
 
 impl Text3dPlugin {
-    pub fn load_fonts_blocking(&self) -> Rt3dCosmicFontSystem {
+    pub fn load_fonts_blocking(&self) -> TextRenderer {
         let empty = Database::new();
         let locale = self
             .locale
@@ -34,7 +34,7 @@ impl Text3dPlugin {
         for data in &self.load_font_embedded {
             system.db_mut().load_font_data(data.to_vec());
         }
-        Rt3dCosmicFontSystem(system)
+        TextRenderer(system)
     }
 
     pub fn load_fonts_concurrent(&self) -> LoadCosmicFonts {
@@ -70,7 +70,7 @@ impl Text3dPlugin {
                 for data in embedded {
                     system.db_mut().load_font_data(data.to_vec());
                 }
-                sender.set(Rt3dCosmicFontSystem(system))
+                sender.set(TextRenderer(system))
             })
             .detach();
         LoadCosmicFonts(receiver)

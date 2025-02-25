@@ -16,7 +16,7 @@ use crate::{
     fetch::FetchedTextSegment,
     styling::GlyphEntry,
     text3d::{Text3d, Text3dSegment},
-    GlyphMeta, Rt3dCosmicFontSystem, Text3dBounds, Text3dDimensionOut, Text3dPlugin, Text3dStyling,
+    GlyphMeta, TextRenderer, Text3dBounds, Text3dDimensionOut, Text3dPlugin, Text3dStyling,
     TextAtlas, TextAtlasHandle,
 };
 
@@ -79,7 +79,7 @@ fn center_aabb_on_anchor(items: &[[f32; 3]], anchor: Vec2) -> (Vec2, Vec2, Vec2)
 
 pub fn text_render(
     settings: Res<Text3dPlugin>,
-    mut font_system: ResMut<Rt3dCosmicFontSystem>,
+    mut font_system: ResMut<TextRenderer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut images: ResMut<Assets<Image>>,
     mut atlases: ResMut<Assets<TextAtlas>>,

@@ -115,10 +115,11 @@ impl Default for Text3dPlugin {
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, SystemSet)]
 pub struct Text3dSet;
 
+/// Newtype for [`cosmic_text::FontSystem`].
 #[derive(Debug, Resource)]
-pub struct Rt3dCosmicFontSystem(FontSystem);
+pub struct TextRenderer(FontSystem);
 
-impl Deref for Rt3dCosmicFontSystem {
+impl Deref for TextRenderer {
     type Target = FontSystem;
 
     fn deref(&self) -> &Self::Target {
@@ -126,7 +127,7 @@ impl Deref for Rt3dCosmicFontSystem {
     }
 }
 
-impl DerefMut for Rt3dCosmicFontSystem {
+impl DerefMut for TextRenderer {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
@@ -157,7 +158,7 @@ impl Plugin for Text3dPlugin {
             PostUpdate,
             (
                 fetch::text_fetch_system,
-                render::text_render.run_if(resource_exists::<Rt3dCosmicFontSystem>),
+                render::text_render.run_if(resource_exists::<TextRenderer>),
             )
                 .chain()
                 .in_set(Text3dSet)

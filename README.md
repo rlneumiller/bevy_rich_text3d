@@ -85,7 +85,7 @@ as other assets.
 * How do I add fonts?
 
 Either add them in the plugin or
-add them via `Res<Rt3dCosmicFontSystem>::db_mut()`, see `cosmic_text`'s documentation for details.
+add them via `Res<TextRenderer>::db_mut()`, see `cosmic_text`'s documentation for details.
 
 * Some characters are missing when text changes
 
