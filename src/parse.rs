@@ -73,7 +73,7 @@ impl Text3d {
     ///     * [`Text3dSegment::Extract`] should be returned after spawning a string fetcher for dynamic values.
     /// * `stylesheet`: Parses strings as [`SegmentStyle`].
     ///
-    /// We remove whitespaces and change all letters to lowercase before passing arguments to these functions.
+    /// We trim whitespaces before passing arguments to these functions.
     pub fn parse(
         text: &str,
         mut fetch_string: impl FnMut(&str) -> Result<Text3dSegment, ParseError>,
@@ -117,7 +117,7 @@ impl Text3d {
                     buffer.clear();
                     state = Command;
                 }
-                (':', Command) => match buffer.as_str().split(",").collect::<Vec<_>>().as_slice() {
+                (':', Command) => match buffer.trim().split(",").collect::<Vec<_>>().as_slice() {
                     ["image"] => {
                         buffer.clear();
                         state = Image;
@@ -125,7 +125,7 @@ impl Text3d {
                     style_slice => {
                         let mut style = style!().clone();
                         for s in style_slice {
-                            style = style.join(parse_style(s, &mut stylesheet)?)
+                            style = style.join(parse_style(s.trim(), &mut stylesheet)?)
                         }
                         styles.push(style);
                         buffer.clear();
@@ -138,7 +138,7 @@ impl Text3d {
                     let _ = styles.pop();
                 }
                 ('}', Command) => {
-                    segments.push((fetch_string(&buffer)?, style!().clone()));
+                    segments.push((fetch_string(buffer.trim())?, style!().clone()));
                     buffer.clear();
                     state = Text;
                 }
@@ -168,8 +168,7 @@ impl Text3d {
                         _ => style!(mut).italic.flip(),
                     }
                 }
-                (c, Command | Image) if c.is_whitespace() => (),
-                (c, Command | Image) => buffer.push(c.to_ascii_lowercase()),
+                (c, Command | Image) => buffer.push(c),
                 (c, Text) if c.is_whitespace() => {
                     let mut linebreaks = if c == '\n' { 1 } else { 0 };
                     while let Some(c) = iter.peek() {

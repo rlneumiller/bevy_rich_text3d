@@ -98,7 +98,7 @@ pub fn main() {
         Startup,
         |mut commands: Commands, units: Query<(Entity, &Unit)>| {
             commands.insert_resource(NameToUnit(
-                units.iter().map(|(e, n)| (n.0.to_lowercase(), e)).collect(),
+                units.iter().map(|(e, n)| (n.0.to_owned(), e)).collect(),
             ));
         },
     );
@@ -113,7 +113,7 @@ pub fn main() {
                 }
             );
             let text = Text3d::parse(
-                "**Samuel**\nStrength: {Samuel.Strength}\nIntellect: {Samuel.Intellect}\nAgility: {Samuel.Agility}\nDefense: {Samuel.Defense}\nStamina: {Samuel.Stamina}", 
+                "**Samuel**\nStrength: {Samuel.strength}\nIntellect: {Samuel.intellect}\nAgility: {Samuel.agility}\nDefense: {Samuel.defense}\nStamina: {Samuel.stamina}", 
                 |s| {
                     let vec: Vec<_> = s.split('.').collect();
                     if let [name, stat] = vec.as_slice() {
