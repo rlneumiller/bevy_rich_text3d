@@ -22,11 +22,12 @@ like glyph count, glyph position or user defined magic numbers via the `uv1` fie
 Add plugins:
 
 ```rust, ignore
-app.insert_resource(Text3dPluginSettings {
-        default_atlas_dimension: (512, 512),
-        scale_factor: 2.,
-    })
-    .add_plugins(Text3dPlugin)
+app.add_plugins(Text3dPlugin{
+    default_atlas_dimension: (1024, 1024),
+    load_system_fonts: true,
+    load_font_directories: vec!["assets/fonts".to_owned()]
+    ..Default::default()
+})
 ```
 
 Spawn a `Text3d`.
@@ -58,7 +59,7 @@ See documentation on `Text3d::parse` for up-to-date syntax.
 
 * `cosmic_text`
 
-Cosmic text is used for layout, this portion is shared with `bevy_text`.
+Cosmic text is used for layout.
 
 * `zeno`
 
@@ -83,11 +84,12 @@ as other assets.
 
 * How do I add fonts?
 
-Add fonts to `Res<CosmicFontSystem>::db_mut()`, see `cosmic_text`'s documentation for details.
+Either add them in the plugin or
+add them via `Res<Rt3dCosmicFontSystem>::db_mut()`, see `cosmic_text`'s documentation for details.
 
 * Some characters are missing when text changes
 
-You must add `TouchTextMaterialPlugin` to get around a change detection issue in bevy.
+You must add `TouchTextMaterial*dPlugin` to get around a change detection issue in bevy.
 This is a band-aid solution intended to be removed later as we wait for a fix upstream.
 
 * My glyphs are blurry
