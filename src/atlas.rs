@@ -1,7 +1,14 @@
-use bevy::{asset::{Asset, AssetId, Assets, Handle, RenderAssetUsages}, ecs::component::Component, image::Image, math::{IVec2, Rect, Vec2}, reflect::TypePath, render::render_resource::{Extent3d, TextureDimension, TextureFormat}, utils::HashMap};
+use bevy::{
+    asset::{Asset, AssetId, Assets, Handle, RenderAssetUsages},
+    ecs::component::Component,
+    image::Image,
+    math::{IVec2, Rect, Vec2},
+    reflect::TypePath,
+    render::render_resource::{Extent3d, TextureDimension, TextureFormat},
+    utils::HashMap,
+};
 
 use crate::styling::GlyphEntry;
-
 
 /// Backing image handle and atlas of [`Text3d`].
 #[derive(Debug, Clone, Default, TypePath, Asset)]

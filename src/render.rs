@@ -16,7 +16,8 @@ use crate::{
     fetch::FetchedTextSegment,
     styling::GlyphEntry,
     text3d::{Text3d, Text3dSegment},
-    GlyphMeta, Rt3dCosmicFontSystem, Text3dBounds, Text3dDimensionOut, Text3dPlugin, Text3dStyling, TextAtlas, TextAtlasHandle,
+    GlyphMeta, Rt3dCosmicFontSystem, Text3dBounds, Text3dDimensionOut, Text3dPlugin, Text3dStyling,
+    TextAtlas, TextAtlasHandle,
 };
 
 fn corners(rect: Rect) -> [[f32; 2]; 4] {
@@ -242,23 +243,37 @@ pub fn text_render(
                 };
 
                 for (stroke, color, z) in renders.iter().copied() {
-                    let Some((pixel_rect, base)) = atlas.glyphs.get(&GlyphEntry {
-                        font: glyph.font_id,
-                        glyph_id: glyph.glyph_id,
-                        size: FloatOrd(glyph.font_size),
-                        weight: styling.weight,
-                        stroke,
-                    }).copied().or_else(
-                        || font_system
-                            .db()
-                            .with_face_data(glyph.font_id, |file, _| {
-                                let Ok(face) = Face::parse(file, 0) else {
-                                    return None;
-                                };
-                                cache_glyph(&mut images, scale_factor, &styling, atlas, &mut tess_commands, glyph, stroke, face)
-                            })
-                            .flatten()
-                    ) else {
+                    let Some((pixel_rect, base)) = atlas
+                        .glyphs
+                        .get(&GlyphEntry {
+                            font: glyph.font_id,
+                            glyph_id: glyph.glyph_id,
+                            size: FloatOrd(glyph.font_size),
+                            weight: styling.weight,
+                            stroke,
+                        })
+                        .copied()
+                        .or_else(|| {
+                            font_system
+                                .db()
+                                .with_face_data(glyph.font_id, |file, _| {
+                                    let Ok(face) = Face::parse(file, 0) else {
+                                        return None;
+                                    };
+                                    cache_glyph(
+                                        &mut images,
+                                        scale_factor,
+                                        &styling,
+                                        atlas,
+                                        &mut tess_commands,
+                                        glyph,
+                                        stroke,
+                                        face,
+                                    )
+                                })
+                                .flatten()
+                        })
+                    else {
                         continue;
                     };
 
@@ -374,7 +389,16 @@ pub fn text_render(
     }
 }
 
-fn cache_glyph(images: &mut ResMut<'_, Assets<Image>>, scale_factor: f32, styling: &Ref<'_, Text3dStyling>, atlas: &mut TextAtlas, tess_commands: &mut CommandEncoder, glyph: &cosmic_text::LayoutGlyph, stroke: Option<std::num::NonZero<u32>>, face: Face) -> Option<(Rect, Vec2)> {
+fn cache_glyph(
+    images: &mut ResMut<'_, Assets<Image>>,
+    scale_factor: f32,
+    styling: &Ref<'_, Text3dStyling>,
+    atlas: &mut TextAtlas,
+    tess_commands: &mut CommandEncoder,
+    glyph: &cosmic_text::LayoutGlyph,
+    stroke: Option<std::num::NonZero<u32>>,
+    face: Face,
+) -> Option<(Rect, Vec2)> {
     let unit_per_em = face.units_per_em() as f32;
     let entry = GlyphEntry {
         font: glyph.font_id,

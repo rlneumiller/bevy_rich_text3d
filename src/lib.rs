@@ -1,6 +1,7 @@
 #![doc = include_str!("../README.md")]
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
+mod atlas;
 mod change_detection;
 mod color_table;
 mod fetch;
@@ -10,9 +11,9 @@ mod parse;
 mod render;
 mod styling;
 mod text3d;
-mod atlas;
 use std::ops::{Deref, DerefMut};
 
+pub use atlas::{TextAtlas, TextAtlasHandle};
 use bevy::{
     app::{First, Plugin, PostUpdate},
     asset::{AssetApp, AssetId, Assets},
@@ -36,7 +37,6 @@ pub use fetch::{FetchedTextSegment, SharedTextSegment, TextFetch};
 use loading::{load_cosmic_fonts_system, LoadCosmicFonts};
 pub use misc::*;
 pub use parse::ParseError;
-pub use atlas::{TextAtlas, TextAtlasHandle};
 pub use styling::{SegmentStyle, Text3dStyling};
 pub use text3d::{Text3d, Text3dSegment};
 

@@ -95,10 +95,9 @@ This is a band-aid solution intended to be removed later as we wait for a fix up
 You should set `scale_factor` in `Text3dPluginSettings`.
 Note the corresponding value may not be initialized on `Window` during app creation.
 
-* My game is stuttering
+* App stutters when text are first drawn
 
-The crate is experimental and currently does not have concurrency support.
-Future releases will attempt to address this issue.
+Asynchronous text rasterization is not implemented, future releases will attempt to address this issue.
 
 ## Versions
 
