@@ -10,6 +10,7 @@ mod parse;
 mod render;
 mod styling;
 mod text3d;
+mod atlas;
 use std::ops::{Deref, DerefMut};
 
 use bevy::{
@@ -35,7 +36,7 @@ pub use fetch::{FetchedTextSegment, SharedTextSegment, TextFetch};
 use loading::{load_cosmic_fonts_system, LoadCosmicFonts};
 pub use misc::*;
 pub use parse::ParseError;
-pub use render::{TextAtlas, TextAtlasHandle};
+pub use atlas::{TextAtlas, TextAtlasHandle};
 pub use styling::{SegmentStyle, Text3dStyling};
 pub use text3d::{Text3d, Text3dSegment};
 
