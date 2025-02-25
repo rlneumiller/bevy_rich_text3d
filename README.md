@@ -92,8 +92,7 @@ This is a band-aid solution intended to be removed later as we wait for a fix up
 
 * My glyphs are blurry
 
-You should set `scale_factor` in `Text3dPluginSettings`.
-Note the corresponding value may not be initialized on `Window` during app creation.
+You may want to manually set the `scale_factor` in `Text3dPluginSettings`.
 
 * App stutters when text are first drawn
 
