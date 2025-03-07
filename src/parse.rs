@@ -1,6 +1,31 @@
 use std::{iter::repeat, num::NonZeroU32, str::FromStr};
 
+use cosmic_text::{Style, Weight};
+
 use crate::{color_table::parse_color, SegmentStyle, Text3d, Text3dSegment};
+
+trait Flip {
+    fn flip(&mut self);
+}
+
+impl Flip for Option<Weight> {
+    fn flip(&mut self) {
+        *self = match *self {
+            Some(w) if w <= Weight::NORMAL => Some(Weight::BOLD),
+            None => Some(Weight::BOLD),
+            _ => Some(Weight::NORMAL),
+        }
+    }
+}
+
+impl Flip for Option<Style> {
+    fn flip(&mut self) {
+        *self = match *self {
+            Some(Style::Normal) | None => Some(Style::Italic),
+            _ => Some(Style::Italic),
+        }
+    }
+}
 
 impl Text3d {
     /// Call [`Text3d::parse`] with no custom parsing functions.
@@ -158,14 +183,14 @@ impl Text3d {
                         }
                     }
                     match stars {
-                        1 => style!(mut).italic.flip(),
-                        2 => style!(mut).bold.flip(),
+                        1 => style!(mut).style.flip(),
+                        2 => style!(mut).weight.flip(),
                         3 => {
-                            style!(mut).italic.flip();
-                            style!(mut).bold.flip();
+                            style!(mut).style.flip();
+                            style!(mut).weight.flip();
                         }
                         n if n % 2 == 0 => (),
-                        _ => style!(mut).italic.flip(),
+                        _ => style!(mut).style.flip(),
                     }
                 }
                 (c, Command | Image) => buffer.push(c),

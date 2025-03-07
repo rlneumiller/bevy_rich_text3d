@@ -19,7 +19,7 @@ default = ["2d", "3d"]
 3d = ["bevy/bevy_pbr"]
 
 [dependencies]
-bevy = { version = "0.15.1", default-features = false, features = ["bevy_image", "bevy_render", "bevy_asset", "bevy_window"] }
+bevy = { version = "0.15.2", default-features = false, features = ["bevy_image", "bevy_render", "bevy_asset", "bevy_window"] }
 cosmic-text = "0.12.1"
 sys-locale = "0.3.2"
 thiserror = "2.0.9"

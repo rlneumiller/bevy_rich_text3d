@@ -11,6 +11,7 @@ mod parse;
 mod render;
 mod styling;
 mod text3d;
+pub use cosmic_text;
 use std::ops::{Deref, DerefMut};
 
 pub use atlas::{TextAtlas, TextAtlasHandle};
@@ -37,7 +38,7 @@ pub use fetch::{FetchedTextSegment, SharedTextSegment, TextFetch};
 use loading::{load_cosmic_fonts_system, LoadCosmicFonts};
 pub use misc::*;
 pub use parse::ParseError;
-pub use styling::{SegmentStyle, Text3dStyling};
+pub use styling::{SegmentStyle, Text3dStyling, TextAnchor};
 pub use text3d::{Text3d, Text3dSegment};
 
 fn synchronize_scale_factor(
@@ -73,7 +74,7 @@ pub struct Text3dPlugin {
     /// Note the value on `Window` is not real during app creation, so this is up to the user for now.
     pub scale_factor: f32,
     /// Currently the [`Window`]'s scale factor is not correct at app startup,
-    /// if true this synchronizes scale factor with the [`PrimaryWindow`]'s stats.
+    /// if true this synchronizes scale factor with the [`PrimaryWindow`]'s scale factor.
     pub sync_scale_factor_with_main_window: bool,
     /// System locale, like `en-US`.
     pub locale: Option<String>,

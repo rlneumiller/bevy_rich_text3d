@@ -16,8 +16,8 @@ use crate::{
     fetch::FetchedTextSegment,
     styling::GlyphEntry,
     text3d::{Text3d, Text3dSegment},
-    GlyphMeta, TextRenderer, Text3dBounds, Text3dDimensionOut, Text3dPlugin, Text3dStyling,
-    TextAtlas, TextAtlasHandle,
+    GlyphMeta, Text3dBounds, Text3dDimensionOut, Text3dPlugin, Text3dStyling, TextAtlas,
+    TextAtlasHandle, TextRenderer,
 };
 
 fn corners(rect: Rect) -> [[f32; 2]; 4] {
@@ -146,7 +146,10 @@ pub fn text_render(
             }
         }
 
-        let mut buffer = Buffer::new(&mut font_system, Metrics::new(styling.size, styling.size));
+        let mut buffer = Buffer::new(
+            &mut font_system,
+            Metrics::new(styling.size, styling.size * styling.line_height),
+        );
         buffer.set_wrap(&mut font_system, Wrap::WordOrGlyph);
         buffer.set_size(&mut font_system, Some(bounds.width), None);
         buffer.set_tab_width(&mut font_system, styling.tab_width);
@@ -165,7 +168,7 @@ pub fn text_render(
                                 .map(|x| x.into_inner().as_str())
                                 .unwrap_or(""),
                         },
-                        style.as_attr().metadata(idx),
+                        style.as_attr(&styling).metadata(idx),
                     )
                 }),
             Attrs::new()

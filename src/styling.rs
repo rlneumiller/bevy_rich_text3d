@@ -65,6 +65,8 @@ pub struct Text3dStyling {
     pub align: TextAlign,
     /// Where local `[0, 0]` is inside the text block's Aabb.
     pub anchor: TextAnchor,
+    /// Height of a line multiplied to font size, by default `1.0`.
+    pub line_height: f32,
     /// Color of fill.
     pub color: Srgba,
     /// Color of stroke.
@@ -107,6 +109,7 @@ impl Default for Text3dStyling {
             stroke_color: Srgba::WHITE,
             fill: true,
             stroke: Default::default(),
+            line_height: 1.0,
             stroke_offset: -0.5,
             uv1: (GlyphMeta::Index, GlyphMeta::PerGlyphAdvance),
             tab_width: 4,
@@ -122,25 +125,20 @@ pub struct SegmentStyle {
     pub stroke_color: Option<Srgba>,
     pub fill: Option<bool>,
     pub stroke: Option<NonZeroU32>,
-    pub bold: bool,
-    pub italic: bool,
+    pub weight: Option<Weight>,
+    pub style: Option<Style>,
     /// Can be referenced by [`GlyphMeta::MagicNumber`].
     pub magic_number: Option<f32>,
 }
 
 impl SegmentStyle {
-    pub fn as_attr(&self) -> Attrs {
-        let mut result = Attrs::new();
-        if self.bold {
-            result = result.weight(Weight::BOLD);
-        }
-        if self.italic {
-            result = result.style(Style::Italic);
-        }
-        if let Some(name) = self.font.as_ref() {
-            result = result.family(Family::Name(name));
-        }
-        result
+    pub fn as_attr<'t>(&'t self, base: &'t Text3dStyling) -> Attrs<'t> {
+        Attrs::new()
+            .weight(self.weight.unwrap_or(base.weight))
+            .style(self.style.unwrap_or(base.style))
+            .family(Family::Name(
+                self.font.as_ref().map(Arc::as_ref).unwrap_or(&base.font),
+            ))
     }
 
     pub fn join(&self, other: Self) -> Self {
@@ -150,8 +148,8 @@ impl SegmentStyle {
             stroke_color: other.stroke_color.or(self.stroke_color),
             fill: other.fill.or(self.fill),
             stroke: other.stroke.or(self.stroke),
-            bold: other.bold | self.bold,
-            italic: other.italic | self.italic,
+            weight: other.weight.or(self.weight),
+            style: other.style.or(self.style),
             magic_number: other.magic_number.or(self.magic_number),
         }
     }

@@ -1,6 +1,6 @@
 use std::sync::{Arc, OnceLock};
 
-use crate::{TextRenderer, Text3dPlugin};
+use crate::{Text3dPlugin, TextRenderer};
 use bevy::{
     ecs::system::{Commands, ResMut, Resource},
     log::error,
