@@ -38,7 +38,7 @@ pub use fetch::{FetchedTextSegment, SharedTextSegment, TextFetch};
 use loading::{load_cosmic_fonts_system, LoadCosmicFonts};
 pub use misc::*;
 pub use parse::ParseError;
-pub use styling::{SegmentStyle, Text3dStyling, TextAnchor};
+pub use styling::{SegmentStyle, Text3dStyling};
 pub use text3d::{Text3d, Text3dSegment};
 
 fn synchronize_scale_factor(
@@ -90,7 +90,7 @@ pub struct Text3dPlugin {
     ///
     /// If true,
     /// load fonts concurrently on `IOTaskPool` and
-    ///  [`Text3dCosmicFontSystem`] might not be available immediately.
+    ///  [`TextRenderer`] might not be available immediately.
     pub asynchronous_load: bool,
 }
 

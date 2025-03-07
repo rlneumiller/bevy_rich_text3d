@@ -1,52 +1,8 @@
-use bevy::{
-    color::Srgba,
-    math::{FloatOrd, Vec2},
-    prelude::Component,
-};
+use bevy::{color::Srgba, math::FloatOrd, prelude::Component};
 use cosmic_text::{fontdb::ID, Attrs, Family, Style, Weight};
-use std::{
-    num::NonZeroU32,
-    ops::{Deref, DerefMut},
-    sync::Arc,
-};
+use std::{num::NonZeroU32, sync::Arc};
 
-use crate::{GlyphMeta, TextAlign};
-
-/// Anchor of a text block, usually in `(-0.5, -0.5)..=(0.5, 0.5)`.
-#[derive(Debug, Clone, Copy, Default, PartialEq)]
-pub struct TextAnchor(pub Vec2);
-
-impl Deref for TextAnchor {
-    type Target = Vec2;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for TextAnchor {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl TextAnchor {
-    pub const BOTTOM_LEFT: TextAnchor = TextAnchor::new(-0.5, -0.5);
-    pub const BOTTOM_CENTER: TextAnchor = TextAnchor::new(0., -0.5);
-    pub const BOTTOM_RIGHT: TextAnchor = TextAnchor::new(0.5, -0.5);
-
-    pub const CENTER_LEFT: TextAnchor = TextAnchor::new(-0.5, 0.);
-    pub const CENTER: TextAnchor = TextAnchor::new(0., 0.);
-    pub const CENTER_RIGHT: TextAnchor = TextAnchor::new(0.5, 0.);
-
-    pub const TOP_LEFT: TextAnchor = TextAnchor::new(-0.5, 0.5);
-    pub const TOP_CENTER: TextAnchor = TextAnchor::new(0., 0.5);
-    pub const TOP_RIGHT: TextAnchor = TextAnchor::new(0.5, 0.5);
-
-    pub const fn new(x: f32, y: f32) -> Self {
-        TextAnchor(Vec2::new(x, y))
-    }
-}
+use crate::{GlyphMeta, TextAlign, TextAnchor};
 
 /// Default text style of a rich text component.
 #[derive(Debug, Component, Clone)]
@@ -55,17 +11,20 @@ pub struct Text3dStyling {
     ///
     /// Ths is cached per unique value so be sure not to use too many of them.
     pub size: f32,
-    /// Name of the font.
+    /// Name of the font, by default `"serif"`.
+    ///
+    /// For `"serif"`, `"sans-serif"`, `"monospace"`, `"cursive"` and `"fantasy"`,
+    /// use one of the default fonts set in `cosmic_text`.
     pub font: Arc<str>,
-    /// Style of the font.
+    /// Style of the font, i.e. italic.
     pub style: Style,
-    /// Weight of the font.
+    /// Weight of the font, i.e. bold.
     pub weight: Weight,
     /// Horizontal alignment of the font.
     pub align: TextAlign,
     /// Where local `[0, 0]` is inside the text block's Aabb.
     pub anchor: TextAnchor,
-    /// Height of a line multiplied to font size, by default `1.0`.
+    /// Height of a line multiplied by font size, by default `1.0`.
     pub line_height: f32,
     /// Color of fill.
     pub color: Srgba,
@@ -133,12 +92,19 @@ pub struct SegmentStyle {
 
 impl SegmentStyle {
     pub fn as_attr<'t>(&'t self, base: &'t Text3dStyling) -> Attrs<'t> {
+        let family_name = self.font.as_ref().map(Arc::as_ref).unwrap_or(&base.font);
+        let family = match family_name {
+            "" | "serif" => Family::Serif,
+            "sans-serif" => Family::SansSerif,
+            "monospace" => Family::Monospace,
+            "cursive" => Family::Cursive,
+            "fantasy" => Family::Fantasy,
+            _ => Family::Name(family_name),
+        };
         Attrs::new()
             .weight(self.weight.unwrap_or(base.weight))
             .style(self.style.unwrap_or(base.style))
-            .family(Family::Name(
-                self.font.as_ref().map(Arc::as_ref).unwrap_or(&base.font),
-            ))
+            .family(family)
     }
 
     pub fn join(&self, other: Self) -> Self {
