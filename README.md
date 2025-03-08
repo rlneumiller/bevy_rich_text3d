@@ -100,6 +100,13 @@ You may want to manually set the `scale_factor` in `Text3dPluginSettings`.
 
 Asynchronous text rasterization is not implemented, future releases will attempt to address this issue.
 
+## Showcase
+
+![image1](./showcase/a.gif)
+![image2](./showcase/b.gif)
+![image3](./showcase/c.gif)
+![image4](./showcase/d.gif)
+
 ## Versions
 
 | bevy | bevy_rich_text3d |
