@@ -16,7 +16,7 @@ use bevy::{
 };
 use bevy_rich_text3d::{
     ParseError, Text3d, Text3dBounds, Text3dPlugin, Text3dSegment, Text3dStyling, TextAlign,
-    TextAtlas, TextFetch,
+    TextAnchor, TextAtlas, TextFetch,
 };
 
 #[derive(Debug, Component)]
@@ -112,31 +112,54 @@ pub fn main() {
                     ..Default::default()
                 }
             );
-            let text = Text3d::parse(
+            let mut parse = |s: &str| {
+                let vec: Vec<_> = s.split('.').collect();
+                if let [name, stat] = vec.as_slice() {
+                    let stat = Stat::from_str(stat)?;
+                    let unit = *name_to_unit.0.get(*name)
+                        .ok_or(ParseError::Custom(format!("Unknown unit {name}.")))?;
+                    Ok(Text3dSegment::Extract(
+                        commands.spawn(TextFetch::fetch_component::<StatMap>(unit, move |map| {
+                            map.0.get(&stat).copied().unwrap_or_default().to_string()
+                        })).id()
+                    ))
+                } else {
+                    Err(ParseError::Custom("".to_owned()))
+                }
+            };
+            let text1 = Text3d::parse(
                 "**Samuel**\nStrength: {Samuel.strength}\nIntellect: {Samuel.intellect}\nAgility: {Samuel.agility}\nDefense: {Samuel.defense}\nStamina: {Samuel.stamina}", 
-                |s| {
-                    let vec: Vec<_> = s.split('.').collect();
-                    if let [name, stat] = vec.as_slice() {
-                        let stat = Stat::from_str(stat)?;
-                        let unit = *name_to_unit.0.get(*name)
-                            .ok_or(ParseError::Custom(format!("Unknown unit {name}.")))?;
-                        Ok(Text3dSegment::Extract(
-                            commands.spawn(TextFetch::fetch_component::<StatMap>(unit, move |map| {
-                                map.0.get(&stat).copied().unwrap_or_default().to_string()
-                            })).id()
-                        ))
-                    } else {
-                        Err(ParseError::Custom("".to_owned()))
-                    }
-                },
+                &mut parse,
+                |s| Err(ParseError::Custom(format!("Bad style {s}."))),
+            ).unwrap();
+            let text2 = Text3d::parse(
+                "**Catalina**\nStrength: {Catalina.strength}\nIntellect: {Catalina.intellect}\nAgility: {Catalina.agility}\nDefense: {Catalina.defense}\nStamina: {Catalina.stamina}", 
+                &mut parse,
                 |s| Err(ParseError::Custom(format!("Bad style {s}."))),
             ).unwrap();
             commands.spawn((
-                text,
+                text1,
                 Text3dStyling {
                     size: 32.,
                     color: Srgba::new(0., 1., 1., 1.),
                     align: TextAlign::Center,
+                    anchor: TextAnchor::CENTER_LEFT,
+                    ..Default::default()
+                },
+                Text3dBounds {
+                    width: 400.,
+                },
+                Mesh3d::default(),
+                MeshMaterial3d(mat.clone()),
+            ));
+
+            commands.spawn((
+                text2,
+                Text3dStyling {
+                    size: 32.,
+                    color: Srgba::new(1., 0., 0., 1.),
+                    align: TextAlign::Center,
+                    anchor: TextAnchor::CENTER_RIGHT,
                     ..Default::default()
                 },
                 Text3dBounds {
