@@ -90,6 +90,9 @@ pub struct Text3dPlugin {
     pub asynchronous_load: bool,
 }
 
+/// A [`Resource`] that contains paths of fonts to be loaded.
+///
+/// This can be modified before startup in other plugins.
 #[derive(Debug, Resource, Default, Clone)]
 pub struct LoadFonts {
     /// Path of fonts to be loaded.

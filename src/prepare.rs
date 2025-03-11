@@ -113,10 +113,13 @@ pub trait TextProgressReportCallback: Send + Sync + 'static {
 impl TextProgressReportCallback for () {}
 
 impl TextRenderer {
-    /// Creates a function task that can be spawned to a different thread.
+    /// Creates a function task that renders text to a [`TextAtlas`].
     ///
-    /// While the task is running, the text rendering system is paused and no
-    /// new text will be drawn.
+    /// This function should either be ran synchronously before app startup
+    /// or be sent to another thread during a loading screen.
+    ///
+    /// While the task is running concurrently, the text rendering system
+    /// will be paused and no new text will be drawn.
     ///
     /// The [`TextAtlas`] and [`Image`] will be REPLACED after the task finishes.
     /// You should not call `prepare_task` with the same atlas
@@ -180,8 +183,9 @@ impl TextRenderer {
         }
     }
 
-    /// Prepare atlases by cloning images and prepare them in a closure that can be sent to another thread.
+    /// Creates a function task that renders text to a [`TextAtlas`].
     ///
+    /// This function prepare atlases by cloning the underlying images.
     /// See [`TextRenderer::prepare_task`] for details.
     pub fn prepare_images_cloned<S, I>(
         &self,
@@ -206,10 +210,11 @@ impl TextRenderer {
         self.prepare_task(settings, workload, callback)
     }
 
-    /// Prepare atlases by removing images first then prepare them in a closure that can be sent to another thread.
+    /// Creates a function task that renders text to a [`TextAtlas`].
     ///
+    /// This function prepare atlases by removing the underlying atlases and images
+    /// and readd them after the task finishes.
     /// If spawned as a thread, the images will not be available until render finishes.
-    ///     
     /// See [`TextRenderer::prepare_task`] for details.
     pub fn prepare_images<S, I>(
         &self,
