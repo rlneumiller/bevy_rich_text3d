@@ -11,7 +11,7 @@ use bevy::{
     },
     DefaultPlugins,
 };
-use bevy_rich_text3d::{Text3d, Text3dBounds, Text3dPlugin, Text3dStyling, TextAtlas};
+use bevy_rich_text3d::{LoadFonts, Text3d, Text3dBounds, Text3dPlugin, Text3dStyling, TextAtlas};
 
 pub fn main() {
     App::new()
@@ -19,7 +19,10 @@ pub fn main() {
         .add_plugins(Text3dPlugin {
             load_system_fonts: true,
             asynchronous_load: true,
-            load_font_paths: vec![
+            ..Default::default()
+        })
+        .insert_resource(LoadFonts {
+            font_paths: vec![
                 "./assets/Roboto-Regular.ttf".into(),
                 "./assets/Ponomar-Regular.ttf".into(),
             ],

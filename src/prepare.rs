@@ -99,7 +99,7 @@ impl DrawStyle {
 }
 
 /// A callback function that helps a loading screen keep track of progress.
-/// 
+///
 /// If no callback is needed use `()`.
 pub trait TextProgressReportCallback: Send + Sync + 'static {
     /// Called every time a glyph is drawn.
@@ -110,7 +110,7 @@ pub trait TextProgressReportCallback: Send + Sync + 'static {
     fn atlas_drawn(&mut self) {}
 }
 
-impl TextProgressReportCallback for (){}
+impl TextProgressReportCallback for () {}
 
 impl TextRenderer {
     /// Creates a function task that can be spawned to a different thread.
@@ -154,23 +154,21 @@ impl TextRenderer {
                     let weight = style.weight;
                     for run in buffer.layout_runs() {
                         for glyph in run.glyphs {
-                            font_system
-                                .db()
-                                .with_face_data(glyph.font_id, |file, _| {
-                                    let Ok(face) = Face::parse(file, 0) else {
-                                        return;
-                                    };
-                                    cache_glyph(
-                                        scale_factor,
-                                        &mut atlas,
-                                        &mut image,
-                                        &mut tess_commands,
-                                        glyph,
-                                        stroke,
-                                        weight,
-                                        face,
-                                    );
-                                });
+                            font_system.db().with_face_data(glyph.font_id, |file, _| {
+                                let Ok(face) = Face::parse(file, 0) else {
+                                    return;
+                                };
+                                cache_glyph(
+                                    scale_factor,
+                                    &mut atlas,
+                                    &mut image,
+                                    &mut tess_commands,
+                                    glyph,
+                                    stroke,
+                                    weight,
+                                    face,
+                                );
+                            });
                             callback.glyph_drawn();
                         }
                     }
@@ -183,7 +181,7 @@ impl TextRenderer {
     }
 
     /// Prepare atlases by cloning images and prepare them in a closure that can be sent to another thread.
-    /// 
+    ///
     /// See [`TextRenderer::prepare_task`] for details.
     pub fn prepare_images_cloned<S, I>(
         &self,
@@ -209,7 +207,7 @@ impl TextRenderer {
     }
 
     /// Prepare atlases by removing images first then prepare them in a closure that can be sent to another thread.
-    /// 
+    ///
     /// If spawned as a thread, the images will not be available until render finishes.
     ///     
     /// See [`TextRenderer::prepare_task`] for details.

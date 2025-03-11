@@ -1,6 +1,6 @@
 use std::sync::{Arc, OnceLock};
 
-use crate::{Text3dPlugin, TextRenderer};
+use crate::{LoadFonts, Text3dPlugin, TextRenderer};
 use bevy::{
     ecs::system::{Commands, ResMut, Resource},
     log::error,
@@ -12,7 +12,7 @@ use cosmic_text::fontdb::Database;
 pub struct LoadCosmicFonts(pub(crate) Arc<OnceLock<TextRenderer>>);
 
 impl Text3dPlugin {
-    pub fn load_fonts_blocking(&self) -> TextRenderer {
+    pub fn load_fonts_blocking(&self, fonts: LoadFonts) -> TextRenderer {
         let empty = Database::new();
         let locale = self
             .locale
@@ -23,21 +23,21 @@ impl Text3dPlugin {
         if self.load_system_fonts {
             system.db_mut().load_system_fonts();
         }
-        for path in &self.load_font_paths {
+        for path in &fonts.font_paths {
             if let Err(err) = system.db_mut().load_font_file(path) {
                 error!("Error loading font {path}: {err}.");
             };
         }
-        for path in &self.load_font_directories {
+        for path in fonts.font_directories {
             system.db_mut().load_fonts_dir(path);
         }
-        for data in &self.load_font_embedded {
+        for data in fonts.font_embedded {
             system.db_mut().load_font_data(data.to_vec());
         }
         TextRenderer::new(system)
     }
 
-    pub fn load_fonts_concurrent(&self) -> LoadCosmicFonts {
+    pub fn load_fonts_concurrent(&self, fonts: LoadFonts) -> LoadCosmicFonts {
         let locale = self
             .locale
             .clone()
@@ -48,9 +48,6 @@ impl Text3dPlugin {
         let receiver = sender.clone();
 
         let system_fonts = self.load_system_fonts;
-        let font_paths = self.load_font_paths.clone();
-        let font_dirs = self.load_font_directories.clone();
-        let embedded = self.load_font_embedded.clone();
 
         IoTaskPool::get()
             .spawn(async move {
@@ -59,15 +56,15 @@ impl Text3dPlugin {
                 if system_fonts {
                     system.db_mut().load_system_fonts();
                 }
-                for path in font_paths {
+                for path in fonts.font_paths {
                     if let Err(err) = system.db_mut().load_font_file(&path) {
                         error!("Error loading font {path}: {err}.");
                     };
                 }
-                for path in font_dirs {
+                for path in fonts.font_directories {
                     system.db_mut().load_fonts_dir(path);
                 }
-                for data in embedded {
+                for data in fonts.font_embedded {
                     system.db_mut().load_font_data(data.to_vec());
                 }
                 sender.set(TextRenderer::new(system))
