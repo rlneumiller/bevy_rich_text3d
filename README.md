@@ -84,21 +84,12 @@ as other assets.
 
 * How do I add fonts?
 
-Either add them in the plugin or
-add them via `Res<TextRenderer>::db_mut()`, see `cosmic_text`'s documentation for details.
+Add them to the `LoadFonts` resource before the app starts.
 
 * Some characters are missing when text changes
 
 You must add `TouchTextMaterial*dPlugin` to get around a change detection issue in bevy.
 This is a band-aid solution intended to be removed later as we wait for a fix upstream.
-
-* My glyphs are blurry
-
-You may want to manually set the `scale_factor` in `Text3dPluginSettings`.
-
-* App stutters when text are first drawn
-
-Asynchronous text rasterization is not implemented, future releases will attempt to address this issue.
 
 ## Showcase
 

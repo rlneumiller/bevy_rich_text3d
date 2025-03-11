@@ -8,15 +8,16 @@ mod fetch;
 mod loading;
 mod misc;
 mod parse;
+mod prepare;
 mod render;
 mod styling;
 mod text3d;
 pub use cosmic_text;
-use std::ops::{Deref, DerefMut};
+pub use prepare::{DrawStyle, FontSystemGuard, TextProgressReportCallback, TextRenderer};
 
 pub use atlas::{TextAtlas, TextAtlasHandle};
 use bevy::{
-    app::{First, Plugin, PostUpdate},
+    app::{App, First, Plugin, PostUpdate},
     asset::{AssetApp, AssetId, Assets},
     ecs::{
         query::With,
@@ -33,7 +34,6 @@ use change_detection::TouchMaterialSet;
 pub use change_detection::TouchTextMaterial2dPlugin;
 #[cfg(feature = "3d")]
 pub use change_detection::TouchTextMaterial3dPlugin;
-use cosmic_text::FontSystem;
 pub use fetch::{FetchedTextSegment, SharedTextSegment, TextFetch};
 use loading::{load_cosmic_fonts_system, LoadCosmicFonts};
 pub use misc::*;
@@ -70,28 +70,37 @@ pub struct Text3dPlugin {
     pub default_atlas_dimension: (usize, usize),
     /// This should be the primary window's `scale_factor`. For example if this value is 2, a 32 x 32 glyph will
     /// take up 64 x 64 pixels.
-    ///
-    /// Note the value on `Window` is not real during app creation, so this is up to the user for now.
     pub scale_factor: f32,
     /// Currently the [`Window`]'s scale factor is not correct at app startup,
-    /// if true this synchronizes scale factor with the [`PrimaryWindow`]'s scale factor.
+    /// if true synchronizes scale factor with the [`PrimaryWindow`]'s scale factor.
+    ///
+    /// # Note
+    ///
+    /// If the window's scale factor changes, ALL text will be redrawn.
     pub sync_scale_factor_with_main_window: bool,
     /// System locale, like `en-US`.
     pub locale: Option<String>,
     /// If true, load system fonts,
     pub load_system_fonts: bool,
-    /// Path of fonts to be loaded.
-    pub load_font_paths: Vec<String>,
-    /// Path of font directories to be loaded.
-    pub load_font_directories: Vec<String>,
-    /// Fonts embedded in the executable.
-    pub load_font_embedded: Vec<&'static [u8]>,
     /// If false, may increase the app's startup time,
     ///
     /// If true,
     /// load fonts concurrently on `IOTaskPool` and
     ///  [`TextRenderer`] might not be available immediately.
     pub asynchronous_load: bool,
+}
+
+/// A [`Resource`] that contains paths of fonts to be loaded.
+///
+/// This can be modified before startup in other plugins.
+#[derive(Debug, Resource, Default, Clone)]
+pub struct LoadFonts {
+    /// Path of fonts to be loaded.
+    pub font_paths: Vec<String>,
+    /// Path of font directories to be loaded.
+    pub font_directories: Vec<String>,
+    /// Fonts embedded in the executable.
+    pub font_embedded: Vec<&'static [u8]>,
 }
 
 impl Default for Text3dPlugin {
@@ -101,9 +110,6 @@ impl Default for Text3dPlugin {
             scale_factor: 1.0,
             sync_scale_factor_with_main_window: true,
             load_system_fonts: false,
-            load_font_paths: vec![],
-            load_font_directories: vec![],
-            load_font_embedded: vec![],
             asynchronous_load: false,
             locale: None,
         }
@@ -116,33 +122,11 @@ impl Default for Text3dPlugin {
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, SystemSet)]
 pub struct Text3dSet;
 
-/// Newtype for [`cosmic_text::FontSystem`].
-#[derive(Debug, Resource)]
-pub struct TextRenderer(FontSystem);
-
-impl Deref for TextRenderer {
-    type Target = FontSystem;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for TextRenderer {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
 impl Plugin for Text3dPlugin {
-    fn build(&self, app: &mut bevy::prelude::App) {
+    fn build(&self, app: &mut App) {
         app.init_asset::<TextAtlas>();
+        app.init_resource::<LoadFonts>();
         app.insert_resource::<Text3dPlugin>(self.clone());
-        if self.asynchronous_load {
-            app.insert_resource(self.load_fonts_concurrent());
-        } else {
-            app.insert_resource(self.load_fonts_blocking());
-        }
         let (x, y) = self.default_atlas_dimension;
         app.world_mut()
             .resource_mut::<Assets<Image>>()
@@ -174,5 +158,17 @@ impl Plugin for Text3dPlugin {
         app.add_plugins(TouchTextMaterial2dPlugin::<bevy::sprite::ColorMaterial>::default());
         #[cfg(feature = "3d")]
         app.add_plugins(TouchTextMaterial3dPlugin::<bevy::pbr::StandardMaterial>::default());
+    }
+
+    fn cleanup(&self, app: &mut App) {
+        let fonts = app
+            .world_mut()
+            .remove_resource::<LoadFonts>()
+            .unwrap_or_default();
+        if self.asynchronous_load {
+            app.insert_resource(self.load_fonts_concurrent(fonts));
+        } else {
+            app.insert_resource(self.load_fonts_blocking(fonts));
+        }
     }
 }

@@ -2,14 +2,15 @@ use bevy::{
     asset::{AssetId, Assets, RenderAssetUsages},
     color::{ColorToComponents, LinearRgba},
     image::Image,
-    math::{FloatOrd, IVec2, Rect, Vec2},
+    math::{FloatOrd, IVec2, Rect, Vec2, Vec3, Vec4},
     prelude::{DetectChanges, Mesh, Mesh2d, Mesh3d, Mut, Query, Ref, Res, ResMut},
     render::mesh::{Indices, PrimitiveTopology, VertexAttributeValues},
 };
 use cosmic_text::{
     ttf_parser::{Face, GlyphId, OutlineBuilder},
-    Attrs, Buffer, Family, Metrics, Shaping, Wrap,
+    Attrs, Buffer, Family, Metrics, Shaping, Weight, Wrap,
 };
+use std::num::NonZero;
 use zeno::{Cap, Command as ZCommand, Format, Mask, Stroke, Style, Transform, Vector};
 
 use crate::{
@@ -41,6 +42,16 @@ macro_rules! recycle_mesh {
     };
 }
 
+fn default_mesh() -> Mesh {
+    Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::all())
+        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, Vec::<Vec3>::new())
+        .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, Vec::<Vec3>::new())
+        .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, Vec::<Vec2>::new())
+        .with_inserted_attribute(Mesh::ATTRIBUTE_UV_1, Vec::<Vec2>::new())
+        .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, Vec::<Vec4>::new())
+        .with_inserted_indices(Indices::U16(Vec::new()))
+}
+
 fn get_mesh<'t>(
     mesh2d: &mut Option<Mut<Mesh2d>>,
     mesh3d: &mut Option<Mut<Mesh3d>>,
@@ -51,10 +62,7 @@ fn get_mesh<'t>(
         .map(|x| x.id())
         .or_else(|| mesh3d.as_ref().map(|x| x.id()))?;
     if id == AssetId::default() {
-        let handle = meshes.add(Mesh::new(
-            PrimitiveTopology::TriangleList,
-            RenderAssetUsages::all(),
-        ));
+        let handle = meshes.add(default_mesh());
         id = handle.id();
         if let Some(handle_2d) = mesh2d {
             handle_2d.0 = handle.clone();
@@ -79,7 +87,7 @@ fn center_aabb_on_anchor(items: &[[f32; 3]], anchor: Vec2) -> (Vec2, Vec2, Vec2)
 
 pub fn text_render(
     settings: Res<Text3dPlugin>,
-    mut font_system: ResMut<TextRenderer>,
+    font_system: ResMut<TextRenderer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut images: ResMut<Assets<Image>>,
     mut atlases: ResMut<Assets<TextAtlas>>,
@@ -94,6 +102,18 @@ pub fn text_render(
     )>,
     segments: Query<Ref<FetchedTextSegment>>,
 ) {
+    let Ok(mut lock) = font_system.0.try_lock() else {
+        return;
+    };
+    let mut redraw = false;
+    // Add asynchronously drawn text.
+    for (id, atlas, image) in lock.queue.drain(..) {
+        let img_id = atlas.image.id();
+        images.insert(img_id, image);
+        atlases.insert(id, atlas);
+        redraw = true;
+    }
+    let font_system = &mut lock.font_system;
     let scale_factor = settings.scale_factor;
     for (text, bounds, styling, atlas, mut mesh2d, mut mesh3d, mut output) in text_query.iter_mut()
     {
@@ -108,8 +128,12 @@ pub fn text_render(
             ))
         };
 
+        let Some(image) = images.get_mut(atlas.image.id()) else {
+            return;
+        };
+
         // Change detection.
-        if !text.is_changed() && !bounds.is_changed() && !styling.is_changed() {
+        if !redraw && !text.is_changed() && !bounds.is_changed() && !styling.is_changed() {
             let mut unchanged = true;
             for segment in &text.segments {
                 if let Text3dSegment::Extract(entity) = &segment.0 {
@@ -147,15 +171,15 @@ pub fn text_render(
         }
 
         let mut buffer = Buffer::new(
-            &mut font_system,
+            font_system,
             Metrics::new(styling.size, styling.size * styling.line_height),
         );
-        buffer.set_wrap(&mut font_system, Wrap::WordOrGlyph);
-        buffer.set_size(&mut font_system, Some(bounds.width), None);
-        buffer.set_tab_width(&mut font_system, styling.tab_width);
+        buffer.set_wrap(font_system, Wrap::WordOrGlyph);
+        buffer.set_size(font_system, Some(bounds.width), None);
+        buffer.set_tab_width(font_system, styling.tab_width);
 
         buffer.set_rich_text(
-            &mut font_system,
+            font_system,
             text.segments
                 .iter()
                 .enumerate()
@@ -178,7 +202,7 @@ pub fn text_render(
             Shaping::Advanced,
         );
 
-        buffer.shape_until_scroll(&mut font_system, true);
+        buffer.shape_until_scroll(font_system, true);
 
         let Some(mesh) = get_mesh(&mut mesh2d, &mut mesh3d, &mut meshes) else {
             continue;
@@ -264,13 +288,13 @@ pub fn text_render(
                                         return None;
                                     };
                                     cache_glyph(
-                                        &mut images,
                                         scale_factor,
-                                        &styling,
                                         atlas,
+                                        image,
                                         &mut tess_commands,
                                         glyph,
                                         stroke,
+                                        attrs.weight.unwrap_or(styling.weight),
                                         face,
                                     )
                                 })
@@ -345,9 +369,6 @@ pub fn text_render(
             }
             sum_width += run.line_w;
         }
-        let Some(image) = images.get(atlas.image.id()) else {
-            continue;
-        };
 
         let (dimension, offset, bb_min) = center_aabb_on_anchor(&positions, *styling.anchor);
 
@@ -392,14 +413,14 @@ pub fn text_render(
     }
 }
 
-fn cache_glyph(
-    images: &mut ResMut<'_, Assets<Image>>,
+pub(crate) fn cache_glyph(
     scale_factor: f32,
-    styling: &Ref<'_, Text3dStyling>,
     atlas: &mut TextAtlas,
+    image: &mut Image,
     tess_commands: &mut CommandEncoder,
     glyph: &cosmic_text::LayoutGlyph,
-    stroke: Option<std::num::NonZero<u32>>,
+    stroke: Option<NonZero<u32>>,
+    weight: Weight,
     face: Face,
 ) -> Option<(Rect, Vec2)> {
     let unit_per_em = face.units_per_em() as f32;
@@ -407,7 +428,7 @@ fn cache_glyph(
         font: glyph.font_id,
         glyph_id: glyph.glyph_id,
         size: FloatOrd(glyph.font_size),
-        weight: styling.weight,
+        weight,
         stroke,
     };
     tess_commands.commands.clear();
@@ -437,27 +458,19 @@ fn cache_glyph(
     };
     let (w, h) = (bb.width as usize, bb.height as usize);
     let base = Vec2::new(bb.left as f32, bb.top as f32) / scale_factor;
-    let pixel_rect = atlas.cache(
-        images,
-        atlas.image.id(),
-        entry,
-        base,
-        w,
-        h,
-        |buffer, pitch| {
-            for x in 0..w {
-                for y in 0..h {
-                    buffer[y * pitch + x * 4 + 3] = alpha_map[y * w + x]
-                }
+    let pixel_rect = atlas.cache(image, entry, base, w, h, |buffer, pitch| {
+        for x in 0..w {
+            for y in 0..h {
+                buffer[y * pitch + x * 4 + 3] = alpha_map[y * w + x]
             }
-            IVec2::new(w as i32, h as i32)
-        },
-    );
+        }
+        IVec2::new(w as i32, h as i32)
+    });
     Some((pixel_rect, base))
 }
 
 #[derive(Debug, Default)]
-struct CommandEncoder {
+pub(crate) struct CommandEncoder {
     commands: Vec<ZCommand>,
 }
 
