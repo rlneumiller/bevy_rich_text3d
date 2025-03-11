@@ -1,8 +1,8 @@
 use bevy::{color::Srgba, math::FloatOrd, prelude::Component};
-use cosmic_text::{fontdb::ID, Attrs, Family, Style, Weight};
+use cosmic_text::{fontdb::ID, Attrs, Style, Weight};
 use std::{num::NonZeroU32, sync::Arc};
 
-use crate::{GlyphMeta, TextAlign, TextAnchor};
+use crate::{prepare::family, GlyphMeta, TextAlign, TextAnchor};
 
 /// Default text style of a rich text component.
 #[derive(Debug, Component, Clone)]
@@ -93,14 +93,7 @@ pub struct SegmentStyle {
 impl SegmentStyle {
     pub fn as_attr<'t>(&'t self, base: &'t Text3dStyling) -> Attrs<'t> {
         let family_name = self.font.as_ref().map(Arc::as_ref).unwrap_or(&base.font);
-        let family = match family_name {
-            "" | "serif" => Family::Serif,
-            "sans-serif" => Family::SansSerif,
-            "monospace" => Family::Monospace,
-            "cursive" => Family::Cursive,
-            "fantasy" => Family::Fantasy,
-            _ => Family::Name(family_name),
-        };
+        let family = family(family_name);
         Attrs::new()
             .weight(self.weight.unwrap_or(base.weight))
             .style(self.style.unwrap_or(base.style))

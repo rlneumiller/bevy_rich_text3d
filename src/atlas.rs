@@ -1,5 +1,5 @@
 use bevy::{
-    asset::{Asset, AssetId, Assets, Handle, RenderAssetUsages},
+    asset::{Asset, Assets, Handle, RenderAssetUsages},
     ecs::component::Component,
     image::Image,
     math::{IVec2, Rect, Vec2},
@@ -54,8 +54,7 @@ impl TextAtlas {
     /// Cache a glyph.
     pub fn cache(
         &mut self,
-        images: &mut Assets<Image>,
-        id: AssetId<Image>,
+        image: &mut Image,
         glyph: GlyphEntry,
         base: Vec2,
         width: usize,
@@ -65,9 +64,6 @@ impl TextAtlas {
         if let Some((rect, _)) = self.glyphs.get(&glyph) {
             return *rect;
         }
-        let Some(image) = images.get_mut(id) else {
-            return Rect::default();
-        };
         if self.pointer.x as usize + width + PADDING > image.width() as usize {
             self.pointer.x = 0;
             self.pointer.y += self.descent.max(height) as i32 + PADDING as i32;

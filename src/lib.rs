@@ -8,11 +8,12 @@ mod fetch;
 mod loading;
 mod misc;
 mod parse;
+mod prepare;
 mod render;
 mod styling;
 mod text3d;
 pub use cosmic_text;
-use std::ops::{Deref, DerefMut};
+pub use prepare::{DrawStyle, FontSystemGuard, TextRenderer, TextProgressReportCallback};
 
 pub use atlas::{TextAtlas, TextAtlasHandle};
 use bevy::{
@@ -33,7 +34,6 @@ use change_detection::TouchMaterialSet;
 pub use change_detection::TouchTextMaterial2dPlugin;
 #[cfg(feature = "3d")]
 pub use change_detection::TouchTextMaterial3dPlugin;
-use cosmic_text::FontSystem;
 pub use fetch::{FetchedTextSegment, SharedTextSegment, TextFetch};
 use loading::{load_cosmic_fonts_system, LoadCosmicFonts};
 pub use misc::*;
@@ -115,24 +115,6 @@ impl Default for Text3dPlugin {
 /// Manually order this before other transform related systems if applicable.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, SystemSet)]
 pub struct Text3dSet;
-
-/// Newtype for [`cosmic_text::FontSystem`].
-#[derive(Debug, Resource)]
-pub struct TextRenderer(FontSystem);
-
-impl Deref for TextRenderer {
-    type Target = FontSystem;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for TextRenderer {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
 
 impl Plugin for Text3dPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {

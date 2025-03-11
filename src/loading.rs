@@ -34,7 +34,7 @@ impl Text3dPlugin {
         for data in &self.load_font_embedded {
             system.db_mut().load_font_data(data.to_vec());
         }
-        TextRenderer(system)
+        TextRenderer::new(system)
     }
 
     pub fn load_fonts_concurrent(&self) -> LoadCosmicFonts {
@@ -70,7 +70,7 @@ impl Text3dPlugin {
                 for data in embedded {
                     system.db_mut().load_font_data(data.to_vec());
                 }
-                sender.set(TextRenderer(system))
+                sender.set(TextRenderer::new(system))
             })
             .detach();
         LoadCosmicFonts(receiver)
