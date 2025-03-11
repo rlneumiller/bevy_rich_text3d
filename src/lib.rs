@@ -17,7 +17,7 @@ pub use prepare::{DrawStyle, FontSystemGuard, TextProgressReportCallback, TextRe
 
 pub use atlas::{TextAtlas, TextAtlasHandle};
 use bevy::{
-    app::{First, Plugin, PostUpdate},
+    app::{App, First, Plugin, PostUpdate},
     asset::{AssetApp, AssetId, Assets},
     ecs::{
         query::With,
@@ -120,8 +120,9 @@ impl Default for Text3dPlugin {
 pub struct Text3dSet;
 
 impl Plugin for Text3dPlugin {
-    fn build(&self, app: &mut bevy::prelude::App) {
+    fn build(&self, app: &mut App) {
         app.init_asset::<TextAtlas>();
+        app.init_resource::<LoadFonts>();
         app.insert_resource::<Text3dPlugin>(self.clone());
         let (x, y) = self.default_atlas_dimension;
         app.world_mut()
@@ -156,7 +157,7 @@ impl Plugin for Text3dPlugin {
         app.add_plugins(TouchTextMaterial3dPlugin::<bevy::pbr::StandardMaterial>::default());
     }
 
-    fn cleanup(&self, app: &mut bevy::app::App) {
+    fn cleanup(&self, app: &mut App) {
         let fonts = app
             .world_mut()
             .remove_resource::<LoadFonts>()
