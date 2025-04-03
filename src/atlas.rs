@@ -5,8 +5,8 @@ use bevy::{
     math::{IVec2, Rect, Vec2},
     reflect::TypePath,
     render::render_resource::{Extent3d, TextureDimension, TextureFormat},
-    utils::HashMap,
 };
+use rustc_hash::FxHashMap;
 
 use crate::styling::GlyphEntry;
 
@@ -14,7 +14,7 @@ use crate::styling::GlyphEntry;
 #[derive(Debug, Clone, Default, TypePath, Asset)]
 pub struct TextAtlas {
     pub(crate) image: Handle<Image>,
-    pub(crate) glyphs: HashMap<GlyphEntry, (Rect, Vec2)>,
+    pub(crate) glyphs: FxHashMap<GlyphEntry, (Rect, Vec2)>,
     pub(crate) pointer: IVec2,
     pub(crate) descent: usize,
 }
@@ -23,6 +23,7 @@ const PADDING: usize = 2;
 
 impl TextAtlas {
     /// The image used by [`TextAtlas::default()`].
+    #[allow(deprecated)]
     pub const DEFAULT_IMAGE: Handle<Image> =
         Handle::weak_from_u128(0x9a5c50eb057602509c7836bb327807e1);
 
@@ -69,6 +70,14 @@ impl TextAtlas {
             self.pointer.y += self.descent.max(height) as i32 + PADDING as i32;
             self.descent = 0;
         }
+        if image.data.is_none() {
+            return Default::default();
+        }
+        macro_rules! data {
+            ($($tt:tt)*) => {
+                image.data.as_mut().unwrap()[$($tt)*]
+            };
+        }
         self.descent = self.descent.max(height);
         if self.pointer.y as usize + self.descent + PADDING >= image.height() as usize {
             let old_dim = (image.width() * image.height()) as usize;
@@ -78,15 +87,14 @@ impl TextAtlas {
                 depth_or_array_layers: 1,
             });
             for i in old_dim..old_dim * 2 {
-                image.data[i * 4] = 255;
-                image.data[i * 4 + 1] = 255;
-                image.data[i * 4 + 2] = 255;
+                data![i * 4] = 255;
+                data![i * 4 + 1] = 255;
+                data![i * 4 + 2] = 255;
             }
         };
         let w = image.width() as usize;
-
         let dimension = draw(
-            &mut image.data[(self.pointer.y as usize * w + self.pointer.x as usize) * 4..],
+            &mut data![(self.pointer.y as usize * w + self.pointer.x as usize) * 4..],
             w * 4,
         );
 
@@ -106,7 +114,7 @@ impl TextAtlas {
         self.pointer = IVec2::ZERO;
         self.glyphs.clear();
         if let Some(img) = images.get_mut(self.image.id()) {
-            for chunk in img.data.chunks_mut(4) {
+            for chunk in img.data.as_mut().unwrap().chunks_mut(4) {
                 chunk[0] = 255;
                 chunk[1] = 255;
                 chunk[2] = 255;

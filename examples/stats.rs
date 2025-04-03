@@ -11,13 +11,13 @@ use bevy::{
         Projection, Query, Res, ResMut, Resource, Transform,
     },
     time::{Time, Virtual},
-    utils::hashbrown::HashMap,
     DefaultPlugins,
 };
 use bevy_rich_text3d::{
     ParseError, Text3d, Text3dBounds, Text3dPlugin, Text3dSegment, Text3dStyling, TextAlign,
     TextAnchor, TextAtlas, TextFetch,
 };
+use rustc_hash::FxHashMap;
 
 #[derive(Debug, Component)]
 pub struct Unit(&'static str);
@@ -47,10 +47,10 @@ impl FromStr for Stat {
 }
 
 #[derive(Debug, Component)]
-pub struct StatMap(HashMap<Stat, i32>);
+pub struct StatMap(FxHashMap<Stat, i32>);
 
 #[derive(Debug, Resource)]
-pub struct NameToUnit(HashMap<String, Entity>);
+pub struct NameToUnit(FxHashMap<String, Entity>);
 
 pub fn main() {
     let mut app = App::new();
@@ -62,10 +62,11 @@ pub fn main() {
         .insert_resource(AmbientLight {
             color: Color::WHITE,
             brightness: 800.,
+            ..Default::default()
         });
     app.world_mut().spawn((
         Unit("Samuel"),
-        StatMap(HashMap::from([
+        StatMap(FxHashMap::from_iter([
             (Stat::Strength, 1),
             (Stat::Intellect, 2),
             (Stat::Agility, 3),
@@ -75,7 +76,7 @@ pub fn main() {
     ));
     app.world_mut().spawn((
         Unit("Catalina"),
-        StatMap(HashMap::from([
+        StatMap(FxHashMap::from_iter([
             (Stat::Strength, 5),
             (Stat::Intellect, 5),
             (Stat::Agility, 5),
@@ -85,7 +86,7 @@ pub fn main() {
     ));
     app.world_mut().spawn((
         Unit("Rufus"),
-        StatMap(HashMap::from([
+        StatMap(FxHashMap::from_iter([
             (Stat::Strength, 5),
             (Stat::Intellect, 5),
             (Stat::Agility, 5),

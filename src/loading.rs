@@ -2,7 +2,8 @@ use std::sync::{Arc, OnceLock};
 
 use crate::{LoadFonts, Text3dPlugin, TextRenderer};
 use bevy::{
-    ecs::system::{Commands, ResMut, Resource},
+    ecs::resource::Resource,
+    ecs::system::{Commands, ResMut},
     log::error,
     tasks::IoTaskPool,
 };

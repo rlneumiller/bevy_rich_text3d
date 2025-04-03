@@ -14,7 +14,6 @@ use bevy::{
         query::With,
         system::{Local, Query},
     },
-    hierarchy::DespawnRecursiveExt,
     image::Image,
     math::{Vec2, Vec3},
     pbr::AmbientLight,
@@ -62,6 +61,7 @@ pub fn main() {
         .insert_resource(AmbientLight {
             color: Color::WHITE,
             brightness: 800.,
+            ..Default::default()
         })
         .add_systems(
             Update,
@@ -71,7 +71,7 @@ pub fn main() {
                   mut query: Query<(Entity, &mut Transform), With<Swirl>>| {
                 if counter.load(Ordering::Relaxed) >= 133 {
                     for (entity, _) in &query {
-                        commands.entity(entity).despawn_recursive();
+                        commands.entity(entity).despawn();
                     }
                 }
                 *local += timer.delta_secs();

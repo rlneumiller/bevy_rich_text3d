@@ -49,6 +49,7 @@ pub fn main() {
         .insert_resource(AmbientLight {
             color: Color::WHITE,
             brightness: 800.,
+            ..Default::default()
         })
         .add_systems(Startup, |mut commands: Commands,
             mut mats: ResMut<Assets<ExtendedMaterial<StandardMaterial, UVTextShader>>>,

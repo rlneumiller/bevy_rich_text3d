@@ -29,6 +29,7 @@ pub fn main() {
         .insert_resource(AmbientLight {
             color: Color::WHITE,
             brightness: 800.,
+            ..Default::default()
         })
         .add_systems(Startup, |mut commands: Commands, mut standard_materials: ResMut<Assets<StandardMaterial>>| {
             let mat = standard_materials.add(
@@ -74,7 +75,7 @@ pub fn main() {
                     .looking_at(Vec3::new(0., 0., 0.), Vec3::Y)
             ));
         })
-        .add_plugins(FrameTimeDiagnosticsPlugin)
+        .add_plugins(FrameTimeDiagnosticsPlugin::default())
         .add_systems(Update, |fps: Res<DiagnosticsStore>, mut query: Query<&mut FetchedTextSegment, With<FetchFPS>>| {
             let Some(fps) = fps.get(&FrameTimeDiagnosticsPlugin::FPS) else { return; };
             let Some(fps) = fps.smoothed() else { return; };
