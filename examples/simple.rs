@@ -26,6 +26,7 @@ pub fn main() {
         .insert_resource(AmbientLight {
             color: Color::WHITE,
             brightness: 800.,
+            ..Default::default()
         })
         .add_systems(Startup, |mut commands: Commands, server: Res<AssetServer>, mut standard_materials: ResMut<Assets<ColorMaterial>>| {
             let mat = standard_materials.add(

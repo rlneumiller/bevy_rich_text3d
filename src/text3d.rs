@@ -1,6 +1,9 @@
 use bevy::{
-    ecs::{component::ComponentId, world::DeferredWorld},
-    prelude::{Component, DespawnRecursiveExt, Entity},
+    ecs::{
+        component::HookContext,
+        world::{DeferredWorld, Mut},
+    },
+    prelude::{Component, Entity},
 };
 
 use crate::{
@@ -26,8 +29,8 @@ pub enum Text3dSegment {
     Extract(Entity),
 }
 
-fn text_3d_on_remove(mut world: DeferredWorld, entity: Entity, _: ComponentId) {
-    let Ok(entity) = world.get_entity(entity) else {
+fn text_3d_on_remove(mut world: DeferredWorld, cx: HookContext) {
+    let Ok(entity) = world.get_entity(cx.entity) else {
         return;
     };
     let Some(text) = entity.get::<Text3d>() else {
@@ -43,7 +46,7 @@ fn text_3d_on_remove(mut world: DeferredWorld, entity: Entity, _: ComponentId) {
         .collect();
     let mut commands = world.commands();
     for entity in to_be_dropped {
-        commands.entity(entity).try_despawn_recursive();
+        commands.entity(entity).despawn();
     }
 }
 
@@ -56,5 +59,39 @@ impl Text3d {
         Self {
             segments: vec![(Text3dSegment::String(string), Default::default())],
         }
+    }
+
+    pub fn from_extract(entity: Entity) -> Self {
+        Self {
+            segments: vec![(Text3dSegment::Extract(entity), Default::default())],
+        }
+    }
+
+    /// If only contains an owned segment, return that segment as a `&str`.
+    pub fn get_single(&self) -> Option<&str> {
+        if self.segments.len() != 1 {
+            None
+        } else if let Some((Text3dSegment::String(s), _)) = self.segments.first() {
+            Some(s)
+        } else {
+            None
+        }
+    }
+
+    /// If only contains an owned segment, return that segment mutably.
+    pub fn get_single_mut(&mut self) -> Option<&mut String> {
+        if self.segments.len() != 1 {
+            None
+        } else if let Some((Text3dSegment::String(s), _)) = self.segments.get_mut(0) {
+            Some(s)
+        } else {
+            None
+        }
+    }
+
+    /// If only contains an owned segment, return that segment mutably,
+    /// without triggering change detection.
+    pub fn map_single_mut<'a>(this: &'a mut Mut<Self>) -> Option<Mut<'a, String>> {
+        this.reborrow().filter_map_unchanged(Self::get_single_mut)
     }
 }

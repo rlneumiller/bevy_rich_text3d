@@ -195,11 +195,12 @@ pub fn text_render(
                         style.as_attr(&styling).metadata(idx),
                     )
                 }),
-            Attrs::new()
+            &Attrs::new()
                 .family(Family::Name(&styling.font))
                 .style(styling.style)
                 .weight(styling.weight),
             Shaping::Advanced,
+            None,
         );
 
         buffer.shape_until_scroll(font_system, true);

@@ -13,7 +13,8 @@ use bevy::sprite::{Material2d, MeshMaterial2d};
 use bevy::{
     app::{Plugin, PostUpdate},
     asset::Assets,
-    prelude::{Changed, IntoSystemConfigs, Query, ResMut, SystemSet},
+    prelude::IntoScheduleConfigs,
+    prelude::{Changed, Query, ResMut, SystemSet},
 };
 
 use crate::Text3dDimensionOut;

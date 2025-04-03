@@ -21,12 +21,12 @@ use bevy::{
     asset::{AssetApp, AssetId, Assets},
     ecs::{
         query::With,
-        schedule::common_conditions::resource_exists,
+        schedule::{common_conditions::resource_exists, IntoScheduleConfigs},
         system::{Query, ResMut},
         world::Ref,
     },
     image::Image,
-    prelude::{IntoSystemConfigs, IntoSystemSetConfigs, Resource, SystemSet, TransformSystem},
+    prelude::{Resource, SystemSet, TransformSystem},
     window::{PrimaryWindow, Window},
 };
 use change_detection::TouchMaterialSet;
@@ -48,7 +48,7 @@ fn synchronize_scale_factor(
     mut images: ResMut<Assets<Image>>,
 ) {
     if settings.sync_scale_factor_with_main_window {
-        if let Ok(window) = main_window.get_single() {
+        if let Ok(window) = main_window.single() {
             if window.scale_factor() != settings.scale_factor {
                 settings.scale_factor = window.scale_factor();
                 for (_, atlas) in atlases.iter_mut() {

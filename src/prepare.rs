@@ -7,7 +7,7 @@ use std::{
 
 use bevy::{
     asset::{AssetId, Assets},
-    ecs::system::Resource,
+    ecs::resource::Resource,
     image::Image,
 };
 use cosmic_text::{
@@ -149,7 +149,7 @@ impl TextRenderer {
                     buffer.set_text(
                         font_system,
                         str.as_ref(),
-                        style.as_attrs(),
+                        &style.as_attrs(),
                         Shaping::Advanced,
                     );
                     buffer.shape_until_scroll(font_system, false);
