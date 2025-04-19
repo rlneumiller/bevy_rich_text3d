@@ -405,12 +405,23 @@ pub fn text_render(
             *y *= inv_height;
         });
 
-        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
-        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-        mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
-        mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uv0);
-        mesh.insert_attribute(Mesh::ATTRIBUTE_UV_1, uv1);
-        mesh.insert_indices(Indices::U16(indices));
+        if !positions.is_empty() {
+            mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
+            mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+            mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
+            mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uv0);
+            mesh.insert_attribute(Mesh::ATTRIBUTE_UV_1, uv1);
+            mesh.insert_indices(Indices::U16(indices));
+        } else {
+            // Placeholder, since empty mesh panics on some platforms.
+            mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vec![[0.0, 0.0, 0.0]; 3]);
+            mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, vec![[0.0, 1.0, 0.0]; 3]);
+            mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, vec![[0.0, 0.0, 0.0, 0.0]; 3]);
+            mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, vec![[0.0, 0.0]; 3]);
+            mesh.insert_attribute(Mesh::ATTRIBUTE_UV_1, vec![[0.0, 0.0]; 3]);
+            mesh.insert_indices(Indices::U16(vec![0, 1, 2]));
+        }
+
     }
 }
 

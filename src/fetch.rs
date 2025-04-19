@@ -1,4 +1,9 @@
-use bevy::prelude::{Component, DetectChanges, Entity, EntityRef, Query, Without};
+use std::str::FromStr;
+
+use bevy::{
+    ecs::world::Mut,
+    prelude::{Component, DetectChanges, Entity, EntityRef, Query, Without},
+};
 
 /// Prevent [`Text3d`](crate::Text3d) from despawning a [`FetchedTextSegment`] on remove.
 #[derive(Debug, Component, Default)]
@@ -16,6 +21,23 @@ impl FetchedTextSegment {
 
     pub fn as_str(&self) -> &str {
         self.0.as_str()
+    }
+
+    /// Set and trigger change detection if a string like value is changed.
+    pub fn set_if_changed(mut this: Mut<Self>, value: impl AsRef<str> + ToString) {
+        if this.0 != value.as_ref() {
+            this.0 = value.to_string()
+        }
+    }
+
+    /// Set and trigger change detection if a parsable value is changed.
+    pub fn write_if_changed<T: ToString + FromStr + Eq>(mut this: Mut<Self>, value: T) {
+        if let Ok(val) = this.0.parse::<T>() {
+            if val == value {
+                return;
+            }
+        }
+        this.0 = value.to_string()
     }
 }
 

@@ -46,7 +46,7 @@ fn text_3d_on_remove(mut world: DeferredWorld, cx: HookContext) {
         .collect();
     let mut commands = world.commands();
     for entity in to_be_dropped {
-        commands.entity(entity).despawn();
+        commands.entity(entity).try_despawn();
     }
 }
 
