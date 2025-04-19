@@ -20,7 +20,7 @@ default = ["2d", "3d"]
 
 [dependencies]
 bevy = { version = "0.16.0-rc.3", default-features = false, features = ["bevy_image", "bevy_render", "bevy_asset", "bevy_window"] }
-cosmic-text = "0.14.0"
+cosmic-text = "0.14.2"
 rustc-hash = "2.1.1"
 sys-locale = "0.3.2"
 thiserror = "2.0.9"

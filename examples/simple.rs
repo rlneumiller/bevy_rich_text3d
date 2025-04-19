@@ -36,6 +36,21 @@ pub fn main() {
                     ..Default::default()
                 }
             );
+
+            // Tests empty string works.
+            commands.spawn((
+                Text3d::new(""),
+                Text3dStyling {
+                    size: 64.,
+                    stroke: NonZero::new(10),
+                    color: Srgba::new(0., 1., 1., 1.),
+                    stroke_color: Srgba::BLACK,
+                    ..Default::default()
+                },
+                Mesh2d::default(),
+                MeshMaterial2d(mat.clone()),
+            ));
+
             commands.spawn((
                 Text3d::new("Hello World!"),
                 Text3dStyling {

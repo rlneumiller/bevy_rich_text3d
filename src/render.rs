@@ -421,7 +421,6 @@ pub fn text_render(
             mesh.insert_attribute(Mesh::ATTRIBUTE_UV_1, vec![[0.0, 0.0]; 3]);
             mesh.insert_indices(Indices::U16(vec![0, 1, 2]));
         }
-
     }
 }
 
