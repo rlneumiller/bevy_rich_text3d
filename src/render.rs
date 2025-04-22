@@ -74,17 +74,6 @@ fn get_mesh<'t>(
     meshes.get_mut(id)
 }
 
-/// Returns dimension, offset and min
-fn center_aabb_on_anchor(items: &[[f32; 3]], anchor: Vec2) -> (Vec2, Vec2, Vec2) {
-    let mut min = Vec2::MAX;
-    let mut max = Vec2::MIN;
-    for chunk in items.chunks(4) {
-        min = min.min(Vec2::new(chunk[0][0], chunk[0][1]));
-        max = max.max(Vec2::new(chunk[3][0], chunk[3][1]));
-    }
-    (max - min, anchor * (max - min) - (max + min) / 2., min)
-}
-
 pub fn text_render(
     settings: Res<Text3dPlugin>,
     font_system: ResMut<TextRenderer>,
@@ -229,8 +218,10 @@ pub fn text_render(
         let mut real_index = 0;
 
         let mut tess_commands = CommandEncoder::default();
+        let mut height = 0.0f32;
         for run in buffer.layout_runs() {
             width = width.max(run.line_w);
+            height = height.max(run.line_top + run.line_height);
             for glyph in run.glyphs.iter() {
                 let Some((_, attrs)) = text.segments.get(glyph.metadata) else {
                     continue;
@@ -313,7 +304,7 @@ pub fn text_render(
                     let local_x1 = local_x0 + pixel_rect.width() / scale_factor;
 
                     let x0 = local_x0 + dx;
-                    let y0 = glyph.y + base.y - run.line_y - styling.size;
+                    let y0 = glyph.y + base.y - run.line_y;
                     let x1 = local_x1 + dx;
                     let y1 = y0 + pixel_rect.height() / scale_factor;
                     positions.extend([[x0, y0, z], [x1, y0, z], [x0, y1, z], [x1, y1, z]]);
@@ -371,7 +362,22 @@ pub fn text_render(
             sum_width += run.line_w;
         }
 
-        let (dimension, offset, bb_min) = center_aabb_on_anchor(&positions, *styling.anchor);
+        let min = positions
+            .chunks(4)
+            .map(|arr| Vec2::new(arr[0][0], arr[0][1]))
+            .reduce(Vec2::min)
+            .unwrap_or(Vec2::ZERO);
+        let max = positions
+            .chunks(4)
+            .map(|arr| Vec2::new(arr[3][0], arr[3][1]))
+            .reduce(Vec2::max)
+            .unwrap_or(Vec2::ZERO);
+
+        let aabb = max - min;
+        let dimension = Vec2::new(aabb.x, height);
+        let center = Vec2::new((max.x + min.x) / 2., -height / 2.);
+        let offset = *styling.anchor * dimension - center;
+        let bb_min = Vec2::new(min.x, -height);
 
         for (meta_type, i) in [(styling.uv1.0, 0), (styling.uv1.1, 1)] {
             match meta_type {
@@ -394,6 +400,7 @@ pub fn text_render(
             *y += offset.y;
         });
 
+        output.aabb = aabb;
         output.dimension = dimension;
         output.atlas_dimension = IVec2::new(image.width() as i32, image.height() as i32);
 
