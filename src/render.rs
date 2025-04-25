@@ -364,20 +364,19 @@ pub fn text_render(
 
         let min = positions
             .chunks(4)
-            .map(|arr| Vec2::new(arr[0][0], arr[0][1]))
-            .reduce(Vec2::min)
-            .unwrap_or(Vec2::ZERO);
+            .map(|arr| arr[0][0])
+            .reduce(f32::min)
+            .unwrap_or(0.0);
         let max = positions
             .chunks(4)
-            .map(|arr| Vec2::new(arr[3][0], arr[3][1]))
-            .reduce(Vec2::max)
-            .unwrap_or(Vec2::ZERO);
+            .map(|arr| arr[3][0])
+            .reduce(f32::max)
+            .unwrap_or(0.0);
 
-        let aabb = max - min;
-        let dimension = Vec2::new(aabb.x, height);
-        let center = Vec2::new((max.x + min.x) / 2., -height / 2.);
+        let dimension = Vec2::new(max - min, height);
+        let center = Vec2::new((max + min) / 2., -height / 2.);
         let offset = *styling.anchor * dimension - center;
-        let bb_min = Vec2::new(min.x, -height);
+        let bb_min = Vec2::new(min, -height);
 
         for (meta_type, i) in [(styling.uv1.0, 0), (styling.uv1.1, 1)] {
             match meta_type {
@@ -400,7 +399,6 @@ pub fn text_render(
             *y += offset.y;
         });
 
-        output.aabb = aabb;
         output.dimension = dimension;
         output.atlas_dimension = IVec2::new(image.width() as i32, image.height() as i32);
 

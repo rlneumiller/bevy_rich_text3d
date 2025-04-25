@@ -95,7 +95,5 @@ impl TextAnchor {
 pub struct Text3dDimensionOut {
     /// Returns `aabb`'s x and y derived from font's line height.
     pub dimension: Vec2,
-    /// Returns `aabb`'s x and y, should not be used for layout.
-    pub aabb: Vec2,
     pub(crate) atlas_dimension: IVec2,
 }
