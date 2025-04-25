@@ -19,7 +19,7 @@ default = ["2d", "3d"]
 3d = ["bevy/bevy_pbr"]
 
 [dependencies]
-bevy = { version = "0.16.0-rc.3", default-features = false, features = ["bevy_image", "bevy_render", "bevy_asset", "bevy_window"] }
+bevy = { version = "0.16.0", default-features = false, features = ["bevy_image", "bevy_render", "bevy_asset", "bevy_window"] }
 cosmic-text = "0.14.2"
 rustc-hash = "2.1.1"
 sys-locale = "0.3.2"
@@ -33,5 +33,5 @@ opt-level = 3
 opt-level = 3
 
 [dev-dependencies]
-bevy = "0.16.0-rc.3"
+bevy = "0.16.0"
 fastrand = "2.3.0"
