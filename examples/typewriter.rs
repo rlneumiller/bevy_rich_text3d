@@ -18,6 +18,7 @@ use bevy::{
 };
 use bevy_rich_text3d::{
     GlyphMeta, Text3d, Text3dBounds, Text3dPlugin, Text3dStyling, TextAlign, TextAtlas,
+    TouchTextMaterial3dPlugin,
 };
 
 #[derive(Debug, Clone, TypePath, AsBindGroup, Asset)]
@@ -38,6 +39,7 @@ pub fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(MaterialPlugin::<ExtendedMaterial<StandardMaterial, TypewriterShader>>::default())
+        .add_plugins(TouchTextMaterial3dPlugin::<ExtendedMaterial<StandardMaterial, TypewriterShader>>::default())
         .add_plugins(Text3dPlugin {
             load_system_fonts: true,
             asynchronous_load: true,

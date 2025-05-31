@@ -82,11 +82,15 @@ pub struct Text3dPlugin {
     pub locale: Option<String>,
     /// If true, load system fonts,
     pub load_system_fonts: bool,
-    /// If false, may increase the app's startup time,
+    /// If false, loading system fonts might increase startup time.
     ///
-    /// If true,
-    /// load fonts concurrently on `IOTaskPool` and
-    ///  [`TextRenderer`] might not be available immediately.
+    /// If true, load fonts in a separate thread, will panic on platforms like
+    /// wasm where threads are not supported.
+    ///
+    /// # Note
+    ///
+    /// Must add `TouchTextMaterial*dPlugin`s to non-standard materials, otherwise
+    /// text drawn before font system is loaded will not be rendered.
     pub asynchronous_load: bool,
 }
 

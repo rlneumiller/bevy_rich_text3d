@@ -95,6 +95,9 @@ pub fn text_render(
         return;
     };
     let mut redraw = false;
+    if font_system.is_changed() {
+        redraw = true;
+    }
     // Add asynchronously drawn text.
     for (id, atlas, image) in lock.queue.drain(..) {
         let img_id = atlas.image.id();

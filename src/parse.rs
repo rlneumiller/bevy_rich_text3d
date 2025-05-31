@@ -1,4 +1,4 @@
-use std::{iter::repeat, num::NonZeroU32, str::FromStr};
+use std::{iter::repeat_n, num::NonZeroU32, str::FromStr};
 
 use cosmic_text::{Style, Weight};
 
@@ -206,7 +206,7 @@ impl Text3d {
                     }
                     match linebreaks {
                         0 => buffer.push(' '),
-                        n => buffer.extend(repeat('\n').take(n)),
+                        n => buffer.extend(repeat_n('\n', n)),
                     }
                 }
                 (c, Text) => {
