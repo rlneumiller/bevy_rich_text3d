@@ -30,6 +30,9 @@ use bevy::{
     transform::TransformSystem,
     window::{PrimaryWindow, Window},
 };
+#[cfg(feature = "reflect")]
+use bevy::{ecs::reflect::ReflectResource, reflect::Reflect};
+
 use change_detection::TouchMaterialSet;
 #[cfg(feature = "2d")]
 pub use change_detection::TouchTextMaterial2dPlugin;
@@ -62,6 +65,8 @@ fn synchronize_scale_factor(
 
 /// Text3d Plugin, add [`Text3dPluginSettings`] before this to modify its behavior.
 #[derive(Debug, Resource, Clone)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Resource))]
 pub struct Text3dPlugin {
     /// Size of the default font atlas, by default `(512, 512)`, we only extend the atlas by doubling in size vertically.
     ///
@@ -99,12 +104,15 @@ pub struct Text3dPlugin {
 ///
 /// This can be modified before startup in other plugins.
 #[derive(Debug, Resource, Default, Clone)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Resource))]
 pub struct LoadFonts {
     /// Path of fonts to be loaded.
     pub font_paths: Vec<String>,
     /// Path of font directories to be loaded.
     pub font_directories: Vec<String>,
     /// Fonts embedded in the executable.
+    #[reflect(ignore)] // TODO
     pub font_embedded: Vec<&'static [u8]>,
 }
 

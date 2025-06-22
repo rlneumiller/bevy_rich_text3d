@@ -3,17 +3,22 @@ use bevy::{
     ecs::component::Component,
     image::Image,
     math::{IVec2, Rect, Vec2},
-    reflect::TypePath,
     render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
 use rustc_hash::FxHashMap;
 
 use crate::styling::GlyphEntry;
 
+#[cfg(feature = "reflect")]
+use bevy::{ecs::reflect::ReflectComponent, reflect::Reflect};
+
 /// Backing image handle and atlas of [`Text3d`].
-#[derive(Debug, Clone, Default, TypePath, Asset)]
+#[derive(Debug, Clone, Default, Asset)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(not(feature = "reflect"), derive(TypePath))]
 pub struct TextAtlas {
     pub(crate) image: Handle<Image>,
+    #[reflect(ignore)] // TODO
     pub(crate) glyphs: FxHashMap<GlyphEntry, (Rect, Vec2)>,
     pub(crate) pointer: IVec2,
     pub(crate) descent: usize,
@@ -128,4 +133,6 @@ impl TextAtlas {
 /// will use the shared [`TextAtlas::DEFAULT_IMAGE`] as
 /// the underlying image.
 #[derive(Debug, Clone, Component, Default)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct TextAtlasHandle(pub Handle<TextAtlas>);

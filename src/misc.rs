@@ -5,8 +5,12 @@ use bevy::{
     math::{IVec2, Vec2},
 };
 
+#[cfg(feature = "reflect")]
+use bevy::{ecs::reflect::ReflectComponent, reflect::Reflect};
+
 /// Horizontal align of text.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub enum TextAlign {
     #[default]
     Left,
@@ -26,6 +30,7 @@ impl TextAlign {
 
 /// Determines what kind of data each field in `uv1` carry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub enum GlyphMeta {
     /// Left to right count of the glyph, `0`, `1`, etc.
     #[default]
@@ -44,6 +49,8 @@ pub enum GlyphMeta {
 
 /// Determines the maximum width of rendered text, by default infinite.
 #[derive(Debug, Component)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct Text3dBounds {
     pub width: f32,
 }
@@ -56,6 +63,7 @@ impl Default for Text3dBounds {
 
 /// Anchor of a text block, usually in `(-0.5, -0.5)..=(0.5, 0.5)`.
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct TextAnchor(pub Vec2);
 
 impl Deref for TextAnchor {
@@ -92,6 +100,8 @@ impl TextAnchor {
 
 /// Size of the output mesh's `Aabb`.
 #[derive(Debug, Component, Default)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct Text3dDimensionOut {
     /// Returns `aabb`'s x and y derived from font's line height.
     pub dimension: Vec2,

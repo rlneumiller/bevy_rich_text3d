@@ -14,12 +14,19 @@ Mesh based raster rich text implementation for bevy.
 keywords = ["bevy", "text", "font"]
 
 [features]
-default = ["2d", "3d"]
+default = ["2d", "3d", "reflect"]
 2d = ["bevy/bevy_sprite"]
 3d = ["bevy/bevy_pbr"]
+reflect = []
 
 [dependencies]
-bevy = { version = "0.16.0", default-features = false, features = ["bevy_log", "bevy_image", "bevy_render", "bevy_asset", "bevy_window"] }
+bevy = { version = "0.16", default-features = false, features = [
+  "bevy_log",
+  "bevy_image",
+  "bevy_render",
+  "bevy_asset",
+  "bevy_window",
+] }
 cosmic-text = "0.14.2"
 rustc-hash = "2.1.1"
 sys-locale = "0.3.2"
@@ -33,5 +40,5 @@ opt-level = 3
 opt-level = 3
 
 [dev-dependencies]
-bevy = "0.16.0"
+bevy = "0.16"
 fastrand = "2.3.0"

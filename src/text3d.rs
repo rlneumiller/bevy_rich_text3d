@@ -3,6 +3,8 @@ use bevy::ecs::{
     entity::Entity,
     world::{DeferredWorld, Mut},
 };
+#[cfg(feature = "reflect")]
+use bevy::{ecs::reflect::ReflectComponent, reflect::Reflect};
 
 use crate::{
     styling::SegmentStyle, Text3dBounds, Text3dDimensionOut, Text3dStyling, TextAtlasHandle,
@@ -14,6 +16,8 @@ use crate::{
 #[derive(Debug, Component)]
 #[require(Text3dDimensionOut, Text3dBounds, TextAtlasHandle, Text3dStyling)]
 #[component(on_remove = text_3d_on_remove)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct Text3d {
     pub segments: Vec<(Text3dSegment, SegmentStyle)>,
 }
@@ -22,6 +26,7 @@ pub struct Text3d {
 ///
 /// `Extract` reads data from an entity's [`FetchedTextSegment`](crate::FetchedTextSegment) component.
 #[derive(Debug)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub enum Text3dSegment {
     String(String),
     Extract(Entity),

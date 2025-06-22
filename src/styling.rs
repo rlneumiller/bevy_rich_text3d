@@ -4,8 +4,13 @@ use std::{num::NonZeroU32, sync::Arc};
 
 use crate::{prepare::family, GlyphMeta, TextAlign, TextAnchor};
 
+#[cfg(feature = "reflect")]
+use bevy::{ecs::reflect::ReflectComponent, reflect::Reflect};
+
 /// Default text style of a rich text component.
 #[derive(Debug, Component, Clone)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct Text3dStyling {
     /// Size of the font, corresponding to world space units.
     ///
@@ -17,8 +22,10 @@ pub struct Text3dStyling {
     /// use one of the default fonts set in `cosmic_text`.
     pub font: Arc<str>,
     /// Style of the font, i.e. italic.
+    #[reflect(ignore)] // TODO
     pub style: Style,
     /// Weight of the font, i.e. bold.
+    #[reflect(ignore)] // TODO
     pub weight: Weight,
     /// Horizontal alignment of the font.
     pub align: TextAlign,
@@ -78,13 +85,16 @@ impl Default for Text3dStyling {
 
 /// Text style of a segment.
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct SegmentStyle {
     pub font: Option<Arc<str>>,
     pub fill_color: Option<Srgba>,
     pub stroke_color: Option<Srgba>,
     pub fill: Option<bool>,
     pub stroke: Option<NonZeroU32>,
+    #[reflect(ignore)] // TODO
     pub weight: Option<Weight>,
+    #[reflect(ignore)] // TODO
     pub style: Option<Style>,
     /// Can be referenced by [`GlyphMeta::MagicNumber`].
     pub magic_number: Option<f32>,
@@ -115,10 +125,13 @@ impl SegmentStyle {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct GlyphEntry {
+    #[reflect(ignore)] // TODO
     pub font: ID,
     pub glyph_id: u16,
     pub size: FloatOrd,
+    #[reflect(ignore)] // TODO
     pub weight: Weight,
     /// If is none, render in fill mode.
     pub stroke: Option<NonZeroU32>,
