@@ -4,8 +4,8 @@ use bevy::{
     image::Image,
     math::{IVec2, Rect, Vec2},
     render::render_resource::{Extent3d, TextureDimension, TextureFormat},
+    platform::collections::HashMap,
 };
-use rustc_hash::FxHashMap;
 
 use crate::styling::GlyphEntry;
 
@@ -18,8 +18,7 @@ use bevy::{ecs::reflect::ReflectComponent, reflect::Reflect};
 #[cfg_attr(not(feature = "reflect"), derive(TypePath))]
 pub struct TextAtlas {
     pub(crate) image: Handle<Image>,
-    #[reflect(ignore)] // TODO
-    pub(crate) glyphs: FxHashMap<GlyphEntry, (Rect, Vec2)>,
+    pub(crate) glyphs: HashMap<GlyphEntry, (Rect, Vec2)>,
     pub(crate) pointer: IVec2,
     pub(crate) descent: usize,
 }
