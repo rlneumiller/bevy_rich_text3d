@@ -1,4 +1,4 @@
-use bevy::{color::Srgba, math::FloatOrd, prelude::Component};
+use bevy::{color::Srgba, ecs::component::Component, math::FloatOrd};
 use cosmic_text::{fontdb::ID, Attrs, Style, Weight};
 use std::{num::NonZeroU32, sync::Arc};
 

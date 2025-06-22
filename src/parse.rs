@@ -82,7 +82,7 @@ impl Text3d {
     ///
     /// Without `:` values in brackets are treated as dynamic values and passed to the `fetch_string` function.
     /// The result should either be a string fetched from the world
-    /// or an [`Entity`](bevy::prelude::Entity) with a [`FetchedTextSegment`](crate::FetchedTextSegment) component.
+    /// or an [`Entity`](bevy::ecs::entity::Entity) with a [`FetchedTextSegment`](crate::FetchedTextSegment) component.
     ///
     ///
     /// ## Markdown

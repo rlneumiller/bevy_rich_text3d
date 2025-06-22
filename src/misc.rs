@@ -1,8 +1,8 @@
 use std::ops::{Deref, DerefMut};
 
 use bevy::{
+    ecs::component::Component,
     math::{IVec2, Vec2},
-    prelude::Component,
 };
 
 /// Horizontal align of text.

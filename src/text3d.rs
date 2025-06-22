@@ -1,9 +1,7 @@
-use bevy::{
-    ecs::{
-        component::HookContext,
-        world::{DeferredWorld, Mut},
-    },
-    prelude::{Component, Entity},
+use bevy::ecs::{
+    component::{Component, HookContext},
+    entity::Entity,
+    world::{DeferredWorld, Mut},
 };
 
 use crate::{

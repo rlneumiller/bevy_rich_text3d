@@ -1,8 +1,12 @@
 use std::str::FromStr;
 
-use bevy::{
-    ecs::world::Mut,
-    prelude::{Component, DetectChanges, Entity, EntityRef, Query, Without},
+use bevy::ecs::{
+    change_detection::DetectChanges,
+    component::Component,
+    entity::Entity,
+    query::Without,
+    system::Query,
+    world::{EntityRef, Mut},
 };
 
 /// Prevent [`Text3d`](crate::Text3d) from despawning a [`FetchedTextSegment`] on remove.

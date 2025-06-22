@@ -21,12 +21,13 @@ use bevy::{
     asset::{AssetApp, AssetId, Assets},
     ecs::{
         query::With,
-        schedule::{common_conditions::resource_exists, IntoScheduleConfigs},
+        resource::Resource,
+        schedule::{common_conditions::resource_exists, IntoScheduleConfigs, SystemSet},
         system::{Query, ResMut},
         world::Ref,
     },
     image::Image,
-    prelude::{Resource, SystemSet, TransformSystem},
+    transform::TransformSystem,
     window::{PrimaryWindow, Window},
 };
 use change_detection::TouchMaterialSet;
