@@ -3,8 +3,8 @@ use bevy::{
     ecs::component::Component,
     image::Image,
     math::{IVec2, Rect, Vec2},
-    render::render_resource::{Extent3d, TextureDimension, TextureFormat},
     platform::collections::HashMap,
+    render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
 
 use crate::styling::GlyphEntry;

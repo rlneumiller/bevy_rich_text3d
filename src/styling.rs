@@ -127,7 +127,7 @@ impl SegmentStyle {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct GlyphEntry {
-    #[reflect(ignore)] // TODO
+    #[cfg_attr(feature = "reflect", reflect(ignore))]
     pub font: ID,
     pub glyph_id: u16,
     pub size: FloatOrd,

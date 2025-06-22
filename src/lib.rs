@@ -45,6 +45,8 @@ pub use parse::ParseError;
 pub use styling::{SegmentStyle, Text3dStyling};
 pub use text3d::{Text3d, Text3dSegment};
 
+use crate::styling::GlyphEntry;
+
 fn synchronize_scale_factor(
     mut settings: ResMut<Text3dPlugin>,
     main_window: Query<Ref<Window>, With<PrimaryWindow>>,
@@ -112,7 +114,7 @@ pub struct LoadFonts {
     /// Path of font directories to be loaded.
     pub font_directories: Vec<String>,
     /// Fonts embedded in the executable.
-    #[reflect(ignore)] // TODO
+    #[cfg_attr(feature = "reflect", reflect(ignore))]
     pub font_embedded: Vec<&'static [u8]>,
 }
 
@@ -137,6 +139,21 @@ pub struct Text3dSet;
 
 impl Plugin for Text3dPlugin {
     fn build(&self, app: &mut App) {
+        #[cfg(feature = "reflect")]
+        app.register_type::<Text3d>()
+            .register_type::<Text3dStyling>()
+            .register_type::<Text3dSegment>()
+            .register_type::<SegmentStyle>()
+            .register_type::<GlyphEntry>()
+            .register_type::<SharedTextSegment>()
+            .register_type::<FetchedTextSegment>()
+            .register_type::<TextAlign>()
+            .register_type::<GlyphMeta>()
+            .register_type::<Text3dBounds>()
+            .register_type::<TextAnchor>()
+            .register_type::<Text3dDimensionOut>()
+            .register_type::<LoadFonts>();
+
         app.init_asset::<TextAtlas>();
         app.init_resource::<LoadFonts>();
         app.insert_resource::<Text3dPlugin>(self.clone());
