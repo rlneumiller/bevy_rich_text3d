@@ -1,28 +1,30 @@
 use std::{iter::repeat_n, num::NonZeroU32, str::FromStr};
 
-use cosmic_text::{Style, Weight};
-
-use crate::{color_table::parse_color, SegmentStyle, Text3d, Text3dSegment};
+use crate::{
+    color_table::parse_color,
+    misc::{TextStyle, TextWeight},
+    SegmentStyle, Text3d, Text3dSegment,
+};
 
 trait Flip {
     fn flip(&mut self);
 }
 
-impl Flip for Option<Weight> {
+impl Flip for Option<TextWeight> {
     fn flip(&mut self) {
         *self = match *self {
-            Some(w) if w <= Weight::NORMAL => Some(Weight::BOLD),
-            None => Some(Weight::BOLD),
-            _ => Some(Weight::NORMAL),
+            Some(w) if w <= TextWeight::NORMAL => Some(TextWeight::BOLD),
+            None => Some(TextWeight::BOLD),
+            _ => Some(TextWeight::NORMAL),
         }
     }
 }
 
-impl Flip for Option<Style> {
+impl Flip for Option<TextStyle> {
     fn flip(&mut self) {
         *self = match *self {
-            Some(Style::Normal) | None => Some(Style::Italic),
-            _ => Some(Style::Italic),
+            Some(TextStyle::Normal) | None => Some(TextStyle::Italic),
+            _ => Some(TextStyle::Italic),
         }
     }
 }

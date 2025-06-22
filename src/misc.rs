@@ -1,9 +1,9 @@
-use std::ops::{Deref, DerefMut};
-
 use bevy::{
     ecs::component::Component,
     math::{IVec2, Vec2},
 };
+use cosmic_text::{Style, Weight};
+use std::ops::{Deref, DerefMut};
 
 #[cfg(feature = "reflect")]
 use bevy::{ecs::reflect::ReflectComponent, reflect::Reflect};
@@ -106,4 +106,88 @@ pub struct Text3dDimensionOut {
     /// Returns `aabb`'s x and y derived from font's line height.
     pub dimension: Vec2,
     pub(crate) atlas_dimension: IVec2,
+}
+
+/// Allows italic or oblique faces to be selected.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+pub enum TextStyle {
+    /// A face that is neither italic not obliqued.
+    Normal,
+    /// A form that is generally cursive in nature.
+    Italic,
+    /// A typically-sloped version of the regular face.
+    Oblique,
+}
+
+impl Default for TextStyle {
+    #[inline]
+    fn default() -> TextStyle {
+        TextStyle::Normal
+    }
+}
+
+impl Into<Style> for TextStyle {
+    fn into(self) -> Style {
+        match self {
+            TextStyle::Normal => Style::Normal,
+            TextStyle::Italic => Style::Italic,
+            TextStyle::Oblique => Style::Oblique,
+        }
+    }
+}
+
+impl Into<TextStyle> for Style {
+    fn into(self) -> TextStyle {
+        match self {
+            Style::Normal => TextStyle::Normal,
+            Style::Italic => TextStyle::Italic,
+            Style::Oblique => TextStyle::Oblique,
+        }
+    }
+}
+
+/// Specifies the weight of glyphs in the font, their degree of blackness or stroke thickness.
+#[derive(Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Debug, Hash)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+pub struct TextWeight(pub u16);
+
+impl Default for TextWeight {
+    #[inline]
+    fn default() -> TextWeight {
+        TextWeight::NORMAL
+    }
+}
+
+impl TextWeight {
+    /// Thin weight (100), the thinnest value.
+    pub const THIN: TextWeight = TextWeight(Weight::THIN.0);
+    /// Extra light weight (200).
+    pub const EXTRA_LIGHT: TextWeight = TextWeight(Weight::EXTRA_LIGHT.0);
+    /// Light weight (300).
+    pub const LIGHT: TextWeight = TextWeight(Weight::LIGHT.0);
+    /// Normal (400).
+    pub const NORMAL: TextWeight = TextWeight(Weight::NORMAL.0);
+    /// Medium weight (500, higher than normal).
+    pub const MEDIUM: TextWeight = TextWeight(Weight::MEDIUM.0);
+    /// Semibold weight (600).
+    pub const SEMIBOLD: TextWeight = TextWeight(Weight::SEMIBOLD.0);
+    /// Bold weight (700).
+    pub const BOLD: TextWeight = TextWeight(Weight::BOLD.0);
+    /// Extra-bold weight (800).
+    pub const EXTRA_BOLD: TextWeight = TextWeight(Weight::EXTRA_BOLD.0);
+    /// Black weight (900), the thickest value.
+    pub const BLACK: TextWeight = TextWeight(Weight::BLACK.0);
+}
+
+impl Into<Weight> for TextWeight {
+    fn into(self) -> Weight {
+        Weight(self.0)
+    }
+}
+
+impl Into<TextWeight> for Weight {
+    fn into(self) -> TextWeight {
+        TextWeight(self.0)
+    }
 }

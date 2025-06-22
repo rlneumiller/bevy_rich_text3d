@@ -193,8 +193,8 @@ pub fn text_render(
                 }),
             &Attrs::new()
                 .family(Family::Name(&styling.font))
-                .style(styling.style)
-                .weight(styling.weight),
+                .style(styling.style.into())
+                .weight(styling.weight.into()),
             Shaping::Advanced,
             None,
         );
@@ -293,7 +293,7 @@ pub fn text_render(
                                         &mut tess_commands,
                                         glyph,
                                         stroke,
-                                        attrs.weight.unwrap_or(styling.weight),
+                                        attrs.weight.unwrap_or(styling.weight).into(),
                                         face,
                                     )
                                 })
@@ -451,7 +451,7 @@ pub(crate) fn cache_glyph(
         font: glyph.font_id,
         glyph_id: glyph.glyph_id,
         size: FloatOrd(glyph.font_size),
-        weight,
+        weight: weight.into(),
         stroke,
     };
     tess_commands.commands.clear();

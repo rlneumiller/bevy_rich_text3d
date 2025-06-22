@@ -1,11 +1,12 @@
 use bevy::{color::Srgba, ecs::component::Component, math::FloatOrd};
-use cosmic_text::{fontdb::ID, Attrs, Style, Weight};
+use cosmic_text::{fontdb::ID, Attrs};
 use std::{num::NonZeroU32, sync::Arc};
 
-use crate::{prepare::family, GlyphMeta, TextAlign, TextAnchor};
+use crate::{prepare::family, GlyphMeta, TextAlign, TextAnchor, TextStyle, TextWeight};
 
 #[cfg(feature = "reflect")]
 use bevy::{ecs::reflect::ReflectComponent, reflect::Reflect};
+
 
 /// Default text style of a rich text component.
 #[derive(Debug, Component, Clone)]
@@ -22,11 +23,9 @@ pub struct Text3dStyling {
     /// use one of the default fonts set in `cosmic_text`.
     pub font: Arc<str>,
     /// Style of the font, i.e. italic.
-    #[reflect(ignore)] // TODO
-    pub style: Style,
+    pub style: TextStyle,
     /// Weight of the font, i.e. bold.
-    #[reflect(ignore)] // TODO
-    pub weight: Weight,
+    pub weight: TextWeight,
     /// Horizontal alignment of the font.
     pub align: TextAlign,
     /// Where local `[0, 0]` is inside the text block's Aabb.
@@ -92,10 +91,8 @@ pub struct SegmentStyle {
     pub stroke_color: Option<Srgba>,
     pub fill: Option<bool>,
     pub stroke: Option<NonZeroU32>,
-    #[reflect(ignore)] // TODO
-    pub weight: Option<Weight>,
-    #[reflect(ignore)] // TODO
-    pub style: Option<Style>,
+    pub weight: Option<TextWeight>,
+    pub style: Option<TextStyle>,
     /// Can be referenced by [`GlyphMeta::MagicNumber`].
     pub magic_number: Option<f32>,
 }
@@ -105,8 +102,8 @@ impl SegmentStyle {
         let family_name = self.font.as_ref().map(Arc::as_ref).unwrap_or(&base.font);
         let family = family(family_name);
         Attrs::new()
-            .weight(self.weight.unwrap_or(base.weight))
-            .style(self.style.unwrap_or(base.style))
+            .weight(self.weight.unwrap_or(base.weight).into())
+            .style(self.style.unwrap_or(base.style).into())
             .family(family)
     }
 
@@ -131,8 +128,7 @@ pub struct GlyphEntry {
     pub font: ID,
     pub glyph_id: u16,
     pub size: FloatOrd,
-    #[reflect(ignore)] // TODO
-    pub weight: Weight,
+    pub weight: TextWeight,
     /// If is none, render in fill mode.
     pub stroke: Option<NonZeroU32>,
 }

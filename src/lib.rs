@@ -142,6 +142,8 @@ impl Plugin for Text3dPlugin {
         #[cfg(feature = "reflect")]
         app.register_type::<Text3d>()
             .register_type::<Text3dStyling>()
+            .register_type::<TextWeight>()
+            .register_type::<TextStyle>()
             .register_type::<Text3dSegment>()
             .register_type::<SegmentStyle>()
             .register_type::<GlyphEntry>()
