@@ -15,7 +15,7 @@ use bevy::{ecs::reflect::ReflectComponent, reflect::Reflect};
 /// Backing image handle and atlas of [`Text3d`].
 #[derive(Debug, Clone, Default, Asset)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(not(feature = "reflect"), derive(TypePath))]
+#[cfg_attr(not(feature = "reflect"), derive(bevy::reflect::TypePath))]
 pub struct TextAtlas {
     pub(crate) image: Handle<Image>,
     pub(crate) glyphs: HashMap<GlyphEntry, (Rect, Vec2)>,
