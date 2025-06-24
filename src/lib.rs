@@ -45,8 +45,6 @@ pub use parse::ParseError;
 pub use styling::{SegmentStyle, Text3dStyling};
 pub use text3d::{Text3d, Text3dSegment};
 
-use crate::styling::GlyphEntry;
-
 fn synchronize_scale_factor(
     mut settings: ResMut<Text3dPlugin>,
     main_window: Query<Ref<Window>, With<PrimaryWindow>>,
@@ -146,7 +144,7 @@ impl Plugin for Text3dPlugin {
             .register_type::<TextStyle>()
             .register_type::<Text3dSegment>()
             .register_type::<SegmentStyle>()
-            .register_type::<GlyphEntry>()
+            .register_type::<crate::styling::GlyphEntry>()
             .register_type::<SharedTextSegment>()
             .register_type::<FetchedTextSegment>()
             .register_type::<TextAlign>()
