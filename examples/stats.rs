@@ -1,12 +1,11 @@
 use std::str::FromStr;
-
+use rustc_hash::FxHashMap;
 use bevy::{
     app::{App, PostStartup, Startup, Update},
     asset::Assets,
     color::{Color, Srgba},
     math::Vec3,
     pbr::{AmbientLight, MeshMaterial3d, StandardMaterial},
-    platform::collections::HashMap,
     prelude::{
         AlphaMode, Camera3d, Commands, Component, Entity, Local, Mesh3d, OrthographicProjection,
         Projection, Query, Res, ResMut, Resource, Transform,
@@ -47,10 +46,10 @@ impl FromStr for Stat {
 }
 
 #[derive(Debug, Component)]
-pub struct StatMap(HashMap<Stat, i32>);
+pub struct StatMap(FxHashMap<Stat, i32>);
 
 #[derive(Debug, Resource)]
-pub struct NameToUnit(HashMap<String, Entity>);
+pub struct NameToUnit(FxHashMap<String, Entity>);
 
 pub fn main() {
     let mut app = App::new();
@@ -66,7 +65,7 @@ pub fn main() {
         });
     app.world_mut().spawn((
         Unit("Samuel"),
-        StatMap(HashMap::from_iter([
+        StatMap(FxHashMap::from_iter([
             (Stat::Strength, 1),
             (Stat::Intellect, 2),
             (Stat::Agility, 3),
@@ -76,7 +75,7 @@ pub fn main() {
     ));
     app.world_mut().spawn((
         Unit("Catalina"),
-        StatMap(HashMap::from_iter([
+        StatMap(FxHashMap::from_iter([
             (Stat::Strength, 5),
             (Stat::Intellect, 5),
             (Stat::Agility, 5),
@@ -86,7 +85,7 @@ pub fn main() {
     ));
     app.world_mut().spawn((
         Unit("Rufus"),
-        StatMap(HashMap::from_iter([
+        StatMap(FxHashMap::from_iter([
             (Stat::Strength, 5),
             (Stat::Intellect, 5),
             (Stat::Agility, 5),
