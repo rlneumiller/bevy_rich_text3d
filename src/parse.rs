@@ -2,7 +2,7 @@ use std::{iter::repeat_n, num::NonZeroU32, str::FromStr};
 
 use crate::{
     color_table::parse_color,
-    misc::{TextStyle, TextWeight},
+    misc::{Style, Weight},
     SegmentStyle, Text3d, Text3dSegment,
 };
 
@@ -10,21 +10,21 @@ trait Flip {
     fn flip(&mut self);
 }
 
-impl Flip for Option<TextWeight> {
+impl Flip for Option<Weight> {
     fn flip(&mut self) {
         *self = match *self {
-            Some(w) if w <= TextWeight::NORMAL => Some(TextWeight::BOLD),
-            None => Some(TextWeight::BOLD),
-            _ => Some(TextWeight::NORMAL),
+            Some(w) if w <= Weight::NORMAL => Some(Weight::BOLD),
+            None => Some(Weight::BOLD),
+            _ => Some(Weight::NORMAL),
         }
     }
 }
 
-impl Flip for Option<TextStyle> {
+impl Flip for Option<Style> {
     fn flip(&mut self) {
         *self = match *self {
-            Some(TextStyle::Normal) | None => Some(TextStyle::Italic),
-            _ => Some(TextStyle::Italic),
+            Some(Style::Normal) | None => Some(Style::Italic),
+            _ => Some(Style::Italic),
         }
     }
 }

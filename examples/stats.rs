@@ -1,5 +1,3 @@
-use std::str::FromStr;
-use rustc_hash::FxHashMap;
 use bevy::{
     app::{App, PostStartup, Startup, Update},
     asset::Assets,
@@ -17,6 +15,8 @@ use bevy_rich_text3d::{
     ParseError, Text3d, Text3dBounds, Text3dPlugin, Text3dSegment, Text3dStyling, TextAlign,
     TextAnchor, TextAtlas, TextFetch,
 };
+use rustc_hash::FxHashMap;
+use std::str::FromStr;
 
 #[derive(Debug, Component)]
 pub struct Unit(&'static str);

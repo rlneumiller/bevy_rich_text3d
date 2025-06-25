@@ -2,11 +2,14 @@ use bevy::{
     ecs::component::Component,
     math::{IVec2, Vec2},
 };
-use cosmic_text::{Style, Weight};
+use cosmic_text::{Style as CosmicStyle, Weight as CosmicWeight};
 use std::ops::{Deref, DerefMut};
 
 #[cfg(feature = "reflect")]
-use bevy::{ecs::reflect::ReflectComponent, reflect::Reflect};
+use bevy::{
+    ecs::reflect::ReflectComponent,
+    prelude::{Reflect, ReflectDefault},
+};
 
 /// Horizontal align of text.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -50,7 +53,7 @@ pub enum GlyphMeta {
 /// Determines the maximum width of rendered text, by default infinite.
 #[derive(Debug, Component)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Component))]
+#[cfg_attr(feature = "reflect", reflect(Component, Default))]
 pub struct Text3dBounds {
     pub width: f32,
 }
@@ -111,7 +114,7 @@ pub struct Text3dDimensionOut {
 /// Allows italic or oblique faces to be selected.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
-pub enum TextStyle {
+pub enum Style {
     /// A face that is neither italic not obliqued.
     Normal,
     /// A form that is generally cursive in nature.
@@ -120,29 +123,29 @@ pub enum TextStyle {
     Oblique,
 }
 
-impl Default for TextStyle {
+impl Default for Style {
     #[inline]
-    fn default() -> TextStyle {
-        TextStyle::Normal
+    fn default() -> Style {
+        Style::Normal
     }
 }
 
-impl Into<Style> for TextStyle {
-    fn into(self) -> Style {
-        match self {
-            TextStyle::Normal => Style::Normal,
-            TextStyle::Italic => Style::Italic,
-            TextStyle::Oblique => Style::Oblique,
+impl From<Style> for CosmicStyle {
+    fn from(val: Style) -> Self {
+        match val {
+            Style::Normal => CosmicStyle::Normal,
+            Style::Italic => CosmicStyle::Italic,
+            Style::Oblique => CosmicStyle::Oblique,
         }
     }
 }
 
-impl Into<TextStyle> for Style {
-    fn into(self) -> TextStyle {
-        match self {
-            Style::Normal => TextStyle::Normal,
-            Style::Italic => TextStyle::Italic,
-            Style::Oblique => TextStyle::Oblique,
+impl From<CosmicStyle> for Style {
+    fn from(val: CosmicStyle) -> Self {
+        match val {
+            CosmicStyle::Normal => Style::Normal,
+            CosmicStyle::Italic => Style::Italic,
+            CosmicStyle::Oblique => Style::Oblique,
         }
     }
 }
@@ -150,44 +153,44 @@ impl Into<TextStyle> for Style {
 /// Specifies the weight of glyphs in the font, their degree of blackness or stroke thickness.
 #[derive(Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Debug, Hash)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
-pub struct TextWeight(pub u16);
+pub struct Weight(pub u16);
 
-impl Default for TextWeight {
+impl Default for Weight {
     #[inline]
-    fn default() -> TextWeight {
-        TextWeight::NORMAL
+    fn default() -> Weight {
+        Weight::NORMAL
     }
 }
 
-impl TextWeight {
+impl Weight {
     /// Thin weight (100), the thinnest value.
-    pub const THIN: TextWeight = TextWeight(Weight::THIN.0);
+    pub const THIN: Weight = Weight(CosmicWeight::THIN.0);
     /// Extra light weight (200).
-    pub const EXTRA_LIGHT: TextWeight = TextWeight(Weight::EXTRA_LIGHT.0);
+    pub const EXTRA_LIGHT: Weight = Weight(CosmicWeight::EXTRA_LIGHT.0);
     /// Light weight (300).
-    pub const LIGHT: TextWeight = TextWeight(Weight::LIGHT.0);
+    pub const LIGHT: Weight = Weight(CosmicWeight::LIGHT.0);
     /// Normal (400).
-    pub const NORMAL: TextWeight = TextWeight(Weight::NORMAL.0);
+    pub const NORMAL: Weight = Weight(CosmicWeight::NORMAL.0);
     /// Medium weight (500, higher than normal).
-    pub const MEDIUM: TextWeight = TextWeight(Weight::MEDIUM.0);
+    pub const MEDIUM: Weight = Weight(CosmicWeight::MEDIUM.0);
     /// Semibold weight (600).
-    pub const SEMIBOLD: TextWeight = TextWeight(Weight::SEMIBOLD.0);
+    pub const SEMIBOLD: Weight = Weight(CosmicWeight::SEMIBOLD.0);
     /// Bold weight (700).
-    pub const BOLD: TextWeight = TextWeight(Weight::BOLD.0);
+    pub const BOLD: Weight = Weight(CosmicWeight::BOLD.0);
     /// Extra-bold weight (800).
-    pub const EXTRA_BOLD: TextWeight = TextWeight(Weight::EXTRA_BOLD.0);
+    pub const EXTRA_BOLD: Weight = Weight(CosmicWeight::EXTRA_BOLD.0);
     /// Black weight (900), the thickest value.
-    pub const BLACK: TextWeight = TextWeight(Weight::BLACK.0);
+    pub const BLACK: Weight = Weight(CosmicWeight::BLACK.0);
 }
 
-impl Into<Weight> for TextWeight {
-    fn into(self) -> Weight {
-        Weight(self.0)
+impl From<Weight> for CosmicWeight {
+    fn from(val: Weight) -> Self {
+        CosmicWeight(val.0)
     }
 }
 
-impl Into<TextWeight> for Weight {
-    fn into(self) -> TextWeight {
-        TextWeight(self.0)
+impl From<CosmicWeight> for Weight {
+    fn from(val: CosmicWeight) -> Self {
+        Weight(val.0)
     }
 }

@@ -12,10 +12,11 @@ mod prepare;
 mod render;
 mod styling;
 mod text3d;
-pub use cosmic_text;
 pub use prepare::{DrawStyle, FontSystemGuard, TextProgressReportCallback, TextRenderer};
 
 pub use atlas::{TextAtlas, TextAtlasHandle};
+#[cfg(feature = "reflect")]
+use bevy::prelude::{Reflect, ReflectDefault, ReflectResource};
 use bevy::{
     app::{App, First, Plugin, PostUpdate},
     asset::{AssetApp, AssetId, Assets},
@@ -30,8 +31,6 @@ use bevy::{
     transform::TransformSystem,
     window::{PrimaryWindow, Window},
 };
-#[cfg(feature = "reflect")]
-use bevy::{ecs::reflect::ReflectResource, reflect::Reflect};
 
 use change_detection::TouchMaterialSet;
 #[cfg(feature = "2d")]
@@ -66,7 +65,7 @@ fn synchronize_scale_factor(
 /// Text3d Plugin, add [`Text3dPluginSettings`] before this to modify its behavior.
 #[derive(Debug, Resource, Clone)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Resource))]
+#[cfg_attr(feature = "reflect", reflect(Resource, Default))]
 pub struct Text3dPlugin {
     /// Size of the default font atlas, by default `(512, 512)`, we only extend the atlas by doubling in size vertically.
     ///
@@ -104,15 +103,12 @@ pub struct Text3dPlugin {
 ///
 /// This can be modified before startup in other plugins.
 #[derive(Debug, Resource, Default, Clone)]
-#[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Resource))]
 pub struct LoadFonts {
     /// Path of fonts to be loaded.
     pub font_paths: Vec<String>,
     /// Path of font directories to be loaded.
     pub font_directories: Vec<String>,
     /// Fonts embedded in the executable.
-    #[cfg_attr(feature = "reflect", reflect(ignore))]
     pub font_embedded: Vec<&'static [u8]>,
 }
 
@@ -137,23 +133,6 @@ pub struct Text3dSet;
 
 impl Plugin for Text3dPlugin {
     fn build(&self, app: &mut App) {
-        #[cfg(feature = "reflect")]
-        app.register_type::<Text3d>()
-            .register_type::<Text3dStyling>()
-            .register_type::<TextWeight>()
-            .register_type::<TextStyle>()
-            .register_type::<Text3dSegment>()
-            .register_type::<SegmentStyle>()
-            .register_type::<crate::styling::GlyphEntry>()
-            .register_type::<SharedTextSegment>()
-            .register_type::<FetchedTextSegment>()
-            .register_type::<TextAlign>()
-            .register_type::<GlyphMeta>()
-            .register_type::<Text3dBounds>()
-            .register_type::<TextAnchor>()
-            .register_type::<Text3dDimensionOut>()
-            .register_type::<LoadFonts>();
-
         app.init_asset::<TextAtlas>();
         app.init_resource::<LoadFonts>();
         app.insert_resource::<Text3dPlugin>(self.clone());
@@ -188,6 +167,14 @@ impl Plugin for Text3dPlugin {
         app.add_plugins(TouchTextMaterial2dPlugin::<bevy::sprite::ColorMaterial>::default());
         #[cfg(feature = "3d")]
         app.add_plugins(TouchTextMaterial3dPlugin::<bevy::pbr::StandardMaterial>::default());
+
+        #[cfg(feature = "reflect")]
+        app.register_type::<Text3d>()
+            .register_type::<Text3dStyling>()
+            .register_type::<Text3dSegment>()
+            .register_type::<SharedTextSegment>()
+            .register_type::<FetchedTextSegment>()
+            .register_type::<Text3dPlugin>();
     }
 
     fn cleanup(&self, app: &mut App) {

@@ -9,12 +9,12 @@ use bevy::ecs::{
     world::{EntityRef, Mut},
 };
 #[cfg(feature = "reflect")]
-use bevy::{ecs::reflect::ReflectComponent, reflect::Reflect};
+use bevy::prelude::{Reflect, ReflectComponent, ReflectDefault};
 
 /// Prevent [`Text3d`](crate::Text3d) from despawning a [`FetchedTextSegment`] on remove.
 #[derive(Debug, Component, Default)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Component))]
+#[cfg_attr(feature = "reflect", reflect(Component, Default))]
 pub struct SharedTextSegment;
 
 /// A string segment on a component, as opposed to in a [`Text3d`](crate::Text3d).
@@ -23,7 +23,7 @@ pub struct SharedTextSegment;
 /// add [`SharedTextSegment`] to prevent this behavior.
 #[derive(Debug, Component, Default)]
 #[cfg_attr(feature = "reflect", derive(Reflect))]
-#[cfg_attr(feature = "reflect", reflect(Component))]
+#[cfg_attr(feature = "reflect", reflect(Component, Default))]
 pub struct FetchedTextSegment(pub String);
 
 impl FetchedTextSegment {
