@@ -13,8 +13,12 @@ use bevy::sprite::{Material2d, MeshMaterial2d};
 use bevy::{
     app::{Plugin, PostUpdate},
     asset::Assets,
-    prelude::IntoScheduleConfigs,
-    prelude::{Changed, Query, ResMut, SystemSet},
+    ecs::{
+        change_detection::ResMut,
+        query::Changed,
+        schedule::{IntoScheduleConfigs, SystemSet},
+        system::Query,
+    },
 };
 
 use crate::Text3dDimensionOut;
@@ -47,7 +51,7 @@ macro_rules! impl_mat {
         }
 
         impl<T: $ty> Plugin for $name<T> {
-            fn build(&self, app: &mut bevy::prelude::App) {
+            fn build(&self, app: &mut bevy::app::App) {
                 app.add_systems(PostUpdate, $f::<T>.in_set(TouchMaterialSet));
             }
         }

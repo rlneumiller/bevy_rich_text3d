@@ -1,11 +1,17 @@
-use bevy::{color::Srgba, math::FloatOrd, prelude::Component};
-use cosmic_text::{fontdb::ID, Attrs, Style, Weight};
+use bevy::{color::Srgba, ecs::component::Component, math::FloatOrd};
+use cosmic_text::{fontdb::ID, Attrs};
 use std::{num::NonZeroU32, sync::Arc};
 
-use crate::{prepare::family, GlyphMeta, TextAlign, TextAnchor};
+use crate::{prepare::family, GlyphMeta, TextAlign, TextAnchor, TextStyle, TextWeight};
+
+#[cfg(feature = "reflect")]
+use bevy::{ecs::reflect::ReflectComponent, reflect::Reflect};
+
 
 /// Default text style of a rich text component.
 #[derive(Debug, Component, Clone)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
+#[cfg_attr(feature = "reflect", reflect(Component))]
 pub struct Text3dStyling {
     /// Size of the font, corresponding to world space units.
     ///
@@ -17,9 +23,9 @@ pub struct Text3dStyling {
     /// use one of the default fonts set in `cosmic_text`.
     pub font: Arc<str>,
     /// Style of the font, i.e. italic.
-    pub style: Style,
+    pub style: TextStyle,
     /// Weight of the font, i.e. bold.
-    pub weight: Weight,
+    pub weight: TextWeight,
     /// Horizontal alignment of the font.
     pub align: TextAlign,
     /// Where local `[0, 0]` is inside the text block's Aabb.
@@ -78,14 +84,15 @@ impl Default for Text3dStyling {
 
 /// Text style of a segment.
 #[derive(Debug, Default, Clone)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct SegmentStyle {
     pub font: Option<Arc<str>>,
     pub fill_color: Option<Srgba>,
     pub stroke_color: Option<Srgba>,
     pub fill: Option<bool>,
     pub stroke: Option<NonZeroU32>,
-    pub weight: Option<Weight>,
-    pub style: Option<Style>,
+    pub weight: Option<TextWeight>,
+    pub style: Option<TextStyle>,
     /// Can be referenced by [`GlyphMeta::MagicNumber`].
     pub magic_number: Option<f32>,
 }
@@ -95,8 +102,8 @@ impl SegmentStyle {
         let family_name = self.font.as_ref().map(Arc::as_ref).unwrap_or(&base.font);
         let family = family(family_name);
         Attrs::new()
-            .weight(self.weight.unwrap_or(base.weight))
-            .style(self.style.unwrap_or(base.style))
+            .weight(self.weight.unwrap_or(base.weight).into())
+            .style(self.style.unwrap_or(base.style).into())
             .family(family)
     }
 
@@ -115,11 +122,13 @@ impl SegmentStyle {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "reflect", derive(Reflect))]
 pub struct GlyphEntry {
+    #[cfg_attr(feature = "reflect", reflect(ignore))]
     pub font: ID,
     pub glyph_id: u16,
     pub size: FloatOrd,
-    pub weight: Weight,
+    pub weight: TextWeight,
     /// If is none, render in fill mode.
     pub stroke: Option<NonZeroU32>,
 }
