@@ -82,6 +82,7 @@ enum DrawType {
     Fill,
     Stroke(NonZero<u32>),
     /// For underscore and strikethrough, unimplemented for now.
+    #[allow(unused)]
     Line {
         base: f32,
         width: f32,

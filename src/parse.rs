@@ -113,16 +113,6 @@ impl Text3d {
             Image,
         }
 
-        trait BooleanFlip {
-            fn flip(&mut self);
-        }
-
-        impl BooleanFlip for bool {
-            fn flip(&mut self) {
-                *self = !*self;
-            }
-        }
-
         let mut buffer = String::new();
         let mut state = ParseState::Text;
         let mut segments = Vec::new();

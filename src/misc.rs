@@ -196,6 +196,7 @@ impl From<CosmicWeight> for Weight {
     }
 }
 
+/// Type of joins between curves.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum StrokeJoin {
     #[default]
