@@ -437,6 +437,11 @@ pub fn text_render(
             sum_width += run.line_w;
         }
 
+        if max_x < min_x {
+            max_x = 0.;
+            min_x = 0.;
+        }
+
         let dimension = Vec2::new(max_x - min_x, height);
         let center = Vec2::new((max_x + min_x) / 2., -height / 2.);
         let offset = *styling.anchor * dimension - center;
