@@ -439,7 +439,7 @@ pub fn text_render(
 
         if max_x < min_x {
             max_x = 0.;
-            min_x = 0.;
+            min_x = f32::EPSILON;
         }
 
         let dimension = Vec2::new(max_x - min_x, height);
