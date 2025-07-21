@@ -1,9 +1,9 @@
 use bevy::{
     asset::{AssetId, Assets, RenderAssetUsages},
-    color::{ColorToComponents, LinearRgba},
+    color::{ColorToComponents, LinearRgba, Srgba},
     ecs::{
         change_detection::DetectChanges,
-        system::{Query, Res, ResMut},
+        system::{Local, Query, Res, ResMut},
         world::{Mut, Ref},
     },
     image::Image,
@@ -15,14 +15,14 @@ use cosmic_text::{
     Attrs, Buffer, Family, Metrics, Shaping, Weight, Wrap,
 };
 use std::num::NonZero;
-use zeno::{Cap, Command as ZCommand, Format, Join, Mask, Stroke, Style, Transform, Vector};
+use zeno::{Cap, Command as ZCommand, Format, Mask, Stroke, Style, Transform, Vector};
 
 use crate::{
     fetch::FetchedTextSegment,
-    styling::{GlyphEntry, StrokeJoins},
+    styling::GlyphEntry,
     text3d::{Text3d, Text3dSegment},
-    GlyphMeta, Text3dBounds, Text3dDimensionOut, Text3dPlugin, Text3dStyling, TextAtlas,
-    TextAtlasHandle, TextRenderer,
+    GlyphMeta, SegmentStyle, StrokeJoin, Text3dBounds, Text3dDimensionOut, Text3dPlugin,
+    Text3dStyling, TextAtlas, TextAtlasHandle, TextRenderer,
 };
 
 fn corners(rect: Rect) -> [[f32; 2]; 4] {
@@ -78,6 +78,84 @@ fn get_mesh<'t>(
     meshes.get_mut(id)
 }
 
+enum DrawType {
+    Fill,
+    Stroke(NonZero<u32>),
+    /// For underscore and strikethrough, unimplemented for now.
+    Line {
+        base: f32,
+        width: f32,
+    },
+}
+
+pub struct DrawRequest {
+    request: DrawType,
+    color: Srgba,
+    offset: Vec2,
+    z: f32,
+}
+
+impl Text3dStyling {
+    /// Note: Things drawn last gets rendered first.
+    pub(crate) fn fill_draw_requests(&self, attrs: &SegmentStyle, requests: &mut Vec<DrawRequest>) {
+        requests.clear();
+        macro_rules! fill {
+            () => {
+                if attrs.fill.unwrap_or(self.fill) {
+                    if let Some((color, offset)) = self.text_shadow {
+                        requests.push(DrawRequest {
+                            request: DrawType::Fill,
+                            color,
+                            offset,
+                            z: 0.,
+                        });
+                    }
+                    requests.push(DrawRequest {
+                        request: DrawType::Fill,
+                        color: attrs.fill_color.unwrap_or(self.color),
+                        offset: Vec2::ZERO,
+                        z: 0.,
+                    });
+                }
+            };
+        }
+        macro_rules! stroke {
+            () => {
+                if let Some(stroke) = attrs.stroke.or(self.stroke) {
+                    if let Some((color, offset)) = self.text_shadow {
+                        requests.push(DrawRequest {
+                            request: DrawType::Stroke(stroke),
+                            color,
+                            offset,
+                            z: 0.,
+                        });
+                    }
+                    requests.push(DrawRequest {
+                        request: DrawType::Stroke(stroke),
+                        color: attrs.stroke_color.unwrap_or(self.stroke_color),
+                        offset: Vec2::ZERO,
+                        z: 0.,
+                    });
+                }
+            };
+        }
+        if self.stroke_offset > 0. {
+            fill!();
+            stroke!();
+        } else {
+            stroke!();
+            fill!();
+        }
+        let offset = -self.stroke_offset.abs();
+        let mut z = 0.;
+
+        for item in requests.iter_mut().rev() {
+            item.z = z;
+            z += offset;
+        }
+    }
+}
+
 pub fn text_render(
     settings: Res<Text3dPlugin>,
     font_system: ResMut<TextRenderer>,
@@ -94,6 +172,7 @@ pub fn text_render(
         &mut Text3dDimensionOut,
     )>,
     segments: Query<Ref<FetchedTextSegment>>,
+    mut draw_requests: Local<Vec<DrawRequest>>,
 ) {
     let Ok(mut lock) = font_system.0.try_lock() else {
         return;
@@ -226,6 +305,9 @@ pub fn text_render(
 
         let mut tess_commands = CommandEncoder::default();
         let mut height = 0.0f32;
+
+        let mut min_x = f32::MAX;
+        let mut max_x = f32::MIN;
         for run in buffer.layout_runs() {
             width = width.max(run.line_w);
             height = height.max(run.line_top + run.line_height);
@@ -235,40 +317,20 @@ pub fn text_render(
                 };
                 let dx = -run.line_w * styling.align.as_fac();
 
-                let fills = attrs.fill.unwrap_or(styling.fill);
-                let stroke = attrs.stroke.or(styling.stroke);
+                styling.fill_draw_requests(attrs, &mut draw_requests);
 
-                let renders: &[_] = match (fills, stroke) {
-                    (true, None) => &[(None, attrs.fill_color.unwrap_or(styling.color), 0.)],
-                    (false, Some(stroke)) => &[(
-                        Some(stroke),
-                        attrs.stroke_color.unwrap_or(styling.stroke_color),
-                        0.,
-                    )],
-                    (true, Some(stroke)) if styling.stroke_offset > 0.0 => &[
-                        (
-                            None,
-                            attrs.fill_color.unwrap_or(styling.color),
-                            styling.stroke_offset,
-                        ),
-                        (
-                            Some(stroke),
-                            attrs.stroke_color.unwrap_or(styling.stroke_color),
-                            0.,
-                        ),
-                    ],
-                    (true, Some(stroke)) => &[
-                        (
-                            Some(stroke),
-                            attrs.stroke_color.unwrap_or(styling.stroke_color),
-                            -styling.stroke_offset,
-                        ),
-                        (None, attrs.fill_color.unwrap_or(styling.color), 0.),
-                    ],
-                    (false, None) => &[],
-                };
-
-                for (stroke, color, z) in renders.iter().copied() {
+                for DrawRequest {
+                    request,
+                    color,
+                    offset,
+                    z,
+                } in draw_requests.drain(..)
+                {
+                    let stroke = match request {
+                        DrawType::Fill => None,
+                        DrawType::Stroke(size) => Some(size),
+                        DrawType::Line { base: _, width: _ } => todo!(),
+                    };
                     let Some((pixel_rect, base)) = atlas
                         .glyphs
                         .get(&GlyphEntry {
@@ -276,6 +338,7 @@ pub fn text_render(
                             glyph_id: glyph.glyph_id,
                             size: FloatOrd(glyph.font_size),
                             weight: styling.weight,
+                            join: styling.stroke_join,
                             stroke,
                         })
                         .copied()
@@ -293,7 +356,7 @@ pub fn text_render(
                                         &mut tess_commands,
                                         glyph,
                                         stroke,
-                                        styling.stroke_joins,
+                                        styling.stroke_join,
                                         attrs.weight.unwrap_or(styling.weight).into(),
                                         face,
                                     )
@@ -311,10 +374,13 @@ pub fn text_render(
                     let local_x0 = glyph.x + base.x;
                     let local_x1 = local_x0 + pixel_rect.width() / scale_factor;
 
-                    let x0 = local_x0 + dx;
-                    let y0 = glyph.y + base.y - run.line_y;
-                    let x1 = local_x1 + dx;
-                    let y1 = y0 + pixel_rect.height() / scale_factor;
+                    min_x = min_x.min(local_x0 + dx);
+                    max_x = max_x.max(local_x1 + dx);
+
+                    let x0 = local_x0 + dx + offset.x;
+                    let y0 = glyph.y + base.y - run.line_y + offset.y;
+                    let x1 = local_x1 + dx + offset.x;
+                    let y1 = y0 + pixel_rect.height() / scale_factor + offset.y;
                     positions.extend([[x0, y0, z], [x1, y0, z], [x0, y1, z], [x1, y1, z]]);
 
                     normals.extend([[0., 0., 1.]; 4]);
@@ -370,21 +436,10 @@ pub fn text_render(
             sum_width += run.line_w;
         }
 
-        let min = positions
-            .chunks(4)
-            .map(|arr| arr[0][0])
-            .reduce(f32::min)
-            .unwrap_or(0.0);
-        let max = positions
-            .chunks(4)
-            .map(|arr| arr[3][0])
-            .reduce(f32::max)
-            .unwrap_or(0.0);
-
-        let dimension = Vec2::new(max - min, height);
-        let center = Vec2::new((max + min) / 2., -height / 2.);
+        let dimension = Vec2::new(max_x - min_x, height);
+        let center = Vec2::new((max_x + min_x) / 2., -height / 2.);
         let offset = *styling.anchor * dimension - center;
-        let bb_min = Vec2::new(min, -height);
+        let bb_min = Vec2::new(min_x, -height);
 
         for (meta_type, i) in [(styling.uv1.0, 0), (styling.uv1.1, 1)] {
             match meta_type {
@@ -402,10 +457,17 @@ pub fn text_render(
             }
         }
 
-        positions.iter_mut().for_each(|[x, y, _]| {
-            *x += offset.x;
-            *y += offset.y;
-        });
+        if let Some(world_scale) = styling.world_scale {
+            positions.iter_mut().for_each(|[x, y, _]| {
+                *x = (*x + offset.x) * world_scale.x / styling.size;
+                *y = (*y + offset.y) * world_scale.y / styling.size;
+            });
+        } else {
+            positions.iter_mut().for_each(|[x, y, _]| {
+                *x += offset.x;
+                *y += offset.y;
+            });
+        }
 
         output.dimension = dimension;
         output.atlas_dimension = IVec2::new(image.width() as i32, image.height() as i32);
@@ -444,7 +506,7 @@ pub(crate) fn cache_glyph(
     tess_commands: &mut CommandEncoder,
     glyph: &cosmic_text::LayoutGlyph,
     stroke: Option<NonZero<u32>>,
-    stroke_joins: StrokeJoins,
+    stroke_join: StrokeJoin,
     weight: Weight,
     face: Face,
 ) -> Option<(Rect, Vec2)> {
@@ -455,6 +517,7 @@ pub(crate) fn cache_glyph(
         size: FloatOrd(glyph.font_size),
         weight: weight.into(),
         stroke,
+        join: stroke_join,
     };
     tess_commands.commands.clear();
     face.outline_glyph(GlyphId(glyph.glyph_id), tess_commands)?;
@@ -464,11 +527,7 @@ pub(crate) fn cache_glyph(
                 width: stroke.get() as f32 * unit_per_em / 100.,
                 start_cap: Cap::Round,
                 end_cap: Cap::Round,
-                join: match stroke_joins {
-                    StrokeJoins::Miter => Join::Miter,
-                    StrokeJoins::Round => Join::Round,
-                    _ => Join::Bevel,
-                },
+                join: stroke_join.into(),
                 ..Default::default()
             }))
             .transform(Some(Transform::scale(

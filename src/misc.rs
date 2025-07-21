@@ -4,6 +4,7 @@ use bevy::{
 };
 use cosmic_text::{Style as CosmicStyle, Weight as CosmicWeight};
 use std::ops::{Deref, DerefMut};
+use zeno::Join;
 
 #[cfg(feature = "reflect")]
 use bevy::{
@@ -192,5 +193,23 @@ impl From<Weight> for CosmicWeight {
 impl From<CosmicWeight> for Weight {
     fn from(val: CosmicWeight) -> Self {
         Weight(val.0)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum StrokeJoin {
+    #[default]
+    Round,
+    Miter,
+    Bevel,
+}
+
+impl From<StrokeJoin> for Join {
+    fn from(val: StrokeJoin) -> Self {
+        match val {
+            StrokeJoin::Round => Join::Round,
+            StrokeJoin::Bevel => Join::Bevel,
+            StrokeJoin::Miter => Join::Miter,
+        }
     }
 }

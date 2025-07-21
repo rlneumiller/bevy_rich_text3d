@@ -34,45 +34,46 @@ pub fn main() {
             brightness: 800.,
             ..Default::default()
         })
-        .add_systems(
-            Startup,
-            |mut commands: Commands,
-             server: Res<AssetServer>,
-             mut standard_materials: ResMut<Assets<StandardMaterial>>| {
-                let mat = standard_materials.add(StandardMaterial {
-                    base_color_texture: Some(TextAtlas::DEFAULT_IMAGE.clone_weak()),
-                    alpha_mode: AlphaMode::Blend,
-                    unlit: true,
-                    ..Default::default()
-                });
-                commands.spawn((
-                    Text3d::new(include_str!("lorem_cn.txt")),
-                    Text3dStyling {
-                        size: 32.,
-                        color: Srgba::new(1., 1., 0., 1.),
-                        ..Default::default()
-                    },
-                    Text3dBounds { width: 600. },
-                    Mesh3d::default(),
-                    MeshMaterial3d(mat.clone()),
-                    Transform::from_xyz(300., 0., 0.),
-                ));
-
-                commands.spawn((
-                    Mesh3d(server.add(Mesh::from(Plane3d::new(Vec3::Z, Vec2::new(200., 200.))))),
-                    MeshMaterial3d(mat.clone()),
-                    Transform::from_xyz(-300., 0., 0.),
-                ));
-                commands.spawn((
-                    Camera3d::default(),
-                    Projection::Orthographic(OrthographicProjection::default_3d()),
-                    Transform::from_translation(Vec3::new(0., 0., 1.))
-                        .looking_at(Vec3::new(0., 0., 0.), Vec3::Y),
-                ));
-            },
-        )
+        .add_systems(Startup, setup)
         .add_systems(Update, increment_on_space_press)
         .run();
+}
+
+fn setup(
+    mut commands: Commands,
+    server: Res<AssetServer>,
+    mut standard_materials: ResMut<Assets<StandardMaterial>>,
+) {
+    let mat = standard_materials.add(StandardMaterial {
+        base_color_texture: Some(TextAtlas::DEFAULT_IMAGE.clone_weak()),
+        alpha_mode: AlphaMode::Blend,
+        unlit: true,
+        ..Default::default()
+    });
+    commands.spawn((
+        Text3d::new(include_str!("lorem_cn.txt")),
+        Text3dStyling {
+            size: 32.,
+            color: Srgba::new(1., 1., 0., 1.),
+            ..Default::default()
+        },
+        Text3dBounds { width: 600. },
+        Mesh3d::default(),
+        MeshMaterial3d(mat.clone()),
+        Transform::from_xyz(300., 0., 0.),
+    ));
+
+    commands.spawn((
+        Mesh3d(server.add(Mesh::from(Plane3d::new(Vec3::Z, Vec2::new(200., 200.))))),
+        MeshMaterial3d(mat.clone()),
+        Transform::from_xyz(-300., 0., 0.),
+    ));
+    commands.spawn((
+        Camera3d::default(),
+        Projection::Orthographic(OrthographicProjection::default_3d()),
+        Transform::from_translation(Vec3::new(0., 0., 1.))
+            .looking_at(Vec3::new(0., 0., 0.), Vec3::Y),
+    ));
 }
 
 pub fn increment_on_space_press(

@@ -1,8 +1,12 @@
-use bevy::{color::Srgba, ecs::component::Component, math::FloatOrd};
+use bevy::{
+    color::Srgba,
+    ecs::component::Component,
+    math::{FloatOrd, Vec2},
+};
 use cosmic_text::{fontdb::ID, Attrs};
 use std::{num::NonZeroU32, sync::Arc};
 
-use crate::{prepare::family, GlyphMeta, Style, TextAlign, TextAnchor, Weight};
+use crate::{prepare::family, GlyphMeta, StrokeJoin, Style, TextAlign, TextAnchor, Weight};
 
 #[cfg(feature = "reflect")]
 use bevy::prelude::{Reflect, ReflectComponent, ReflectDefault};
@@ -52,14 +56,22 @@ pub struct Text3dStyling {
     ///
     /// By default this is `-0.5`.
     pub stroke_offset: f32,
-    /// The shape of the stroke line joins
-    pub stroke_joins: StrokeJoins,
+    /// The shape of the stroke line joins, usually [`StrokeJoin::Round`].
+    pub stroke_join: StrokeJoin,
 
     /// Determines what to extract as uv1.
     pub uv1: (GlyphMeta, GlyphMeta),
 
     /// Tab in terms of spaces, default 4.
     pub tab_width: u16,
+
+    /// If set, overwrite the size of `em` in the generated mesh.
+    ///
+    /// By default the mesh size is relative to [`Text3dStyling::size`], which is equivalent to `Some((size, size))`.
+    pub world_scale: Option<Vec2>,
+
+    /// If `Some`, render a text shadow.
+    pub text_shadow: Option<(Srgba, Vec2)>,
 }
 
 impl Default for Text3dStyling {
@@ -76,10 +88,12 @@ impl Default for Text3dStyling {
             fill: true,
             stroke: Default::default(),
             line_height: 1.0,
-            stroke_offset: -0.5,
-            stroke_joins: StrokeJoins::Bevel,
+            stroke_offset: -0.01,
+            stroke_join: StrokeJoin::Round,
             uv1: (GlyphMeta::Index, GlyphMeta::PerGlyphAdvance),
             tab_width: 4,
+            world_scale: None,
+            text_shadow: None,
         }
     }
 }
@@ -123,18 +137,11 @@ impl SegmentStyle {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum StrokeJoins {
-    #[default]
-    Bevel,
-    Miter,
-    Round,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct GlyphEntry {
     pub font: ID,
     pub glyph_id: u16,
+    pub join: StrokeJoin,
     pub size: FloatOrd,
     pub weight: Weight,
     /// If is none, render in fill mode.

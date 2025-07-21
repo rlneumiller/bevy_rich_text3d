@@ -16,7 +16,7 @@ use cosmic_text::{
 
 use crate::{
     render::{cache_glyph, CommandEncoder},
-    StrokeJoins, Text3dPlugin, TextAtlas,
+    StrokeJoin, Text3dPlugin, TextAtlas,
 };
 
 /// An [`Arc<Mutex>`] around [`cosmic_text::FontSystem`],
@@ -74,6 +74,7 @@ pub struct DrawStyle {
     pub family: Arc<str>,
     pub size: f32,
     pub stroke: Option<NonZero<u32>>,
+    pub stroke_join: StrokeJoin,
     pub weight: Weight,
     pub style: Style,
 }
@@ -153,6 +154,7 @@ impl TextRenderer {
                         Shaping::Advanced,
                     );
                     buffer.shape_until_scroll(font_system, false);
+                    let join = style.stroke_join;
                     let stroke = style.stroke;
                     let weight = style.weight;
                     for run in buffer.layout_runs() {
@@ -168,7 +170,7 @@ impl TextRenderer {
                                     &mut tess_commands,
                                     glyph,
                                     stroke,
-                                    StrokeJoins::default(),
+                                    join,
                                     weight,
                                     face,
                                 );

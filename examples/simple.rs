@@ -28,64 +28,68 @@ pub fn main() {
             brightness: 800.,
             ..Default::default()
         })
-        .add_systems(Startup, |mut commands: Commands, server: Res<AssetServer>, mut standard_materials: ResMut<Assets<ColorMaterial>>| {
-            let mat = standard_materials.add(
-                ColorMaterial {
-                    texture: Some(TextAtlas::DEFAULT_IMAGE.clone_weak()),
-                    alpha_mode: AlphaMode2d::Blend,
-                    ..Default::default()
-                }
-            );
-
-            // Tests empty string works.
-            commands.spawn((
-                Text3d::new(""),
-                Text3dStyling {
-                    size: 64.,
-                    stroke: NonZero::new(10),
-                    color: Srgba::new(0., 1., 1., 1.),
-                    stroke_color: Srgba::BLACK,
-                    ..Default::default()
-                },
-                Mesh2d::default(),
-                MeshMaterial2d(mat.clone()),
-            ));
-
-            commands.spawn((
-                Text3d::new("Hello World!"),
-                Text3dStyling {
-                    size: 64.,
-                    stroke: NonZero::new(10),
-                    color: Srgba::new(0., 1., 1., 1.),
-                    stroke_color: Srgba::BLACK,
-                    ..Default::default()
-                },
-                Mesh2d::default(),
-                MeshMaterial2d(mat.clone()),
-            ));
-
-            commands.spawn((
-                Text3d::new("This application is powered by bevy, cosmic_text, zeno and bevy_rich_text3d!"),
-                Text3dStyling {
-                    color: Srgba::new(0., 1., 1., 1.),
-                    ..Default::default()
-                },
-                Mesh2d::default(),
-                MeshMaterial2d(mat.clone()),
-                Transform::from_translation(Vec3::new(50., -100., 0.))
-            ));
-
-            commands.spawn((
-                Mesh2d(server.add(Mesh::from(Plane3d::new(Vec3::Z, Vec2::new(200., 200.))))),
-                MeshMaterial2d(mat.clone()),
-                Transform::from_translation(Vec3::new(0., 100., -1.))
-            ));
-            commands.spawn((
-                Camera2d,
-                Projection::Orthographic(OrthographicProjection::default_3d()),
-                Transform::from_translation(Vec3::new(0., 0., 1.))
-                    .looking_at(Vec3::new(0., 0., 0.), Vec3::Y)
-            ));
-        })
+        .add_systems(Startup, setup)
         .run();
+}
+
+fn setup(
+    mut commands: Commands,
+    server: Res<AssetServer>,
+    mut standard_materials: ResMut<Assets<ColorMaterial>>,
+) {
+    let mat = standard_materials.add(ColorMaterial {
+        texture: Some(TextAtlas::DEFAULT_IMAGE.clone_weak()),
+        alpha_mode: AlphaMode2d::Blend,
+        ..Default::default()
+    });
+
+    // Tests empty string works.
+    commands.spawn((
+        Text3d::new(""),
+        Text3dStyling {
+            size: 64.,
+            stroke: NonZero::new(10),
+            color: Srgba::new(0., 1., 1., 1.),
+            stroke_color: Srgba::BLACK,
+            ..Default::default()
+        },
+        Mesh2d::default(),
+        MeshMaterial2d(mat.clone()),
+    ));
+
+    commands.spawn((
+        Text3d::new("Hello World!"),
+        Text3dStyling {
+            size: 64.,
+            stroke: NonZero::new(10),
+            color: Srgba::new(0., 1., 1., 1.),
+            stroke_color: Srgba::BLACK,
+            ..Default::default()
+        },
+        Mesh2d::default(),
+        MeshMaterial2d(mat.clone()),
+    ));
+
+    commands.spawn((
+        Text3d::new("This application is powered by bevy, cosmic_text, zeno and bevy_rich_text3d!"),
+        Text3dStyling {
+            color: Srgba::new(0., 1., 1., 1.),
+            ..Default::default()
+        },
+        Mesh2d::default(),
+        MeshMaterial2d(mat.clone()),
+        Transform::from_translation(Vec3::new(50., -100., 0.)),
+    ));
+
+    commands.spawn((
+        Mesh2d(server.add(Mesh::from(Plane3d::new(Vec3::Z, Vec2::new(200., 200.))))),
+        MeshMaterial2d(mat.clone()),
+        Transform::from_translation(Vec3::new(0., 100., -1.)),
+    ));
+    commands.spawn((
+        Camera2d,
+        Projection::Orthographic(OrthographicProjection::default_3d()),
+        Transform::from_translation(Vec3::new(0., 0., 1.))
+            .looking_at(Vec3::new(0., 0., 0.), Vec3::Y),
+    ));
 }
