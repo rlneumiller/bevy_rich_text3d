@@ -6,6 +6,7 @@ mod change_detection;
 mod color_table;
 mod fetch;
 mod loading;
+mod mesh_util;
 mod misc;
 mod parse;
 mod prepare;
