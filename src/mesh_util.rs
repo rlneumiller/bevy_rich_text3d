@@ -99,6 +99,15 @@ impl<'t> ExtractedMesh<'t> {
         }
     }
 
+    pub fn translate(&mut self, mut f: impl FnMut(&mut Vec2)) {
+        for [x, y, _] in &mut self.positions {
+            let mut v = Vec2::new(*x, *y);
+            f(&mut v);
+            *x = v.x;
+            *y = v.y;
+        }
+    }
+
     pub fn cache_rectangle(
         &mut self,
         base: Vec2,

@@ -12,7 +12,7 @@ use bevy::{
 };
 use cosmic_text::{
     ttf_parser::{Face, GlyphId, OutlineBuilder},
-    Attrs, Buffer, Family, Metrics, Shaping, Weight, Wrap,
+    Attrs, Buffer, Family, FontSystem, LayoutGlyph, Metrics, Shaping, Weight, Wrap,
 };
 use std::num::NonZero;
 use zeno::{Cap, Command as ZCommand, Format, Mask, Stroke, Style, Transform, Vector};
@@ -299,46 +299,24 @@ pub fn text_render(
                         DrawType::Stroke(size) => Some(size),
                         DrawType::Line { base: _, width: _ } => todo!(),
                     };
-                    let Some((pixel_rect, base)) = atlas
-                        .glyphs
-                        .get(&GlyphEntry {
-                            font: glyph.font_id,
-                            glyph_id: glyph.glyph_id,
-                            size: FloatOrd(glyph.font_size),
-                            weight: styling.weight,
-                            join: styling.stroke_join,
-                            stroke,
-                        })
-                        .copied()
-                        .or_else(|| {
-                            font_system
-                                .db()
-                                .with_face_data(glyph.font_id, |file, _| {
-                                    let Ok(face) = Face::parse(file, 0) else {
-                                        return None;
-                                    };
-                                    cache_glyph(
-                                        scale_factor,
-                                        atlas,
-                                        image,
-                                        &mut tess_commands,
-                                        glyph,
-                                        stroke,
-                                        styling.stroke_join,
-                                        attrs.weight.unwrap_or(styling.weight).into(),
-                                        face,
-                                    )
-                                })
-                                .flatten()
-                        })
-                    else {
+                    let Some((pixel_rect, base)) = get_atlas_rect(
+                        font_system,
+                        scale_factor,
+                        &styling,
+                        atlas,
+                        image,
+                        &mut tess_commands,
+                        glyph,
+                        attrs,
+                        stroke,
+                    ) else {
                         continue;
                     };
 
                     let dw = glyph.x + base.x;
 
                     min_x = min_x.min(dw + dx);
-                    max_x = max_x.max(dw + dx + pixel_rect.width() / scale_factor);
+                    max_x = max_x.max(dw + dx + glyph.w);
 
                     let base =
                         Vec2::new(glyph.x, glyph.y) + base + offset + Vec2::new(dx, -run.line_y);
@@ -375,15 +353,9 @@ pub fn text_render(
         mesh.post_process_uv1(&styling, bb_min, dimension);
 
         if let Some(world_scale) = styling.world_scale {
-            mesh.positions.iter_mut().for_each(|[x, y, _]| {
-                *x = (*x + offset.x) * world_scale.x / styling.size;
-                *y = (*y + offset.y) * world_scale.y / styling.size;
-            });
+            mesh.translate(|v| *v = (*v * offset) * world_scale / styling.size);
         } else {
-            mesh.positions.iter_mut().for_each(|[x, y, _]| {
-                *x += offset.x;
-                *y += offset.y;
-            });
+            mesh.translate(|v| *v += offset);
         }
 
         output.dimension = dimension;
@@ -391,6 +363,51 @@ pub fn text_render(
 
         mesh.pixel_to_uv(image);
     }
+}
+
+fn get_atlas_rect(
+    font_system: &mut FontSystem,
+    scale_factor: f32,
+    styling: &Text3dStyling,
+    atlas: &mut TextAtlas,
+    image: &mut Image,
+    tess_commands: &mut CommandEncoder,
+    glyph: &LayoutGlyph,
+    attrs: &SegmentStyle,
+    stroke: Option<NonZero<u32>>,
+) -> Option<(Rect, Vec2)> {
+    atlas
+        .glyphs
+        .get(&GlyphEntry {
+            font: glyph.font_id,
+            glyph_id: glyph.glyph_id,
+            size: FloatOrd(glyph.font_size),
+            weight: styling.weight,
+            join: styling.stroke_join,
+            stroke,
+        })
+        .copied()
+        .or_else(|| {
+            font_system
+                .db()
+                .with_face_data(glyph.font_id, |file, _| {
+                    let Ok(face) = Face::parse(file, 0) else {
+                        return None;
+                    };
+                    cache_glyph(
+                        scale_factor,
+                        atlas,
+                        image,
+                        tess_commands,
+                        glyph,
+                        stroke,
+                        styling.stroke_join,
+                        attrs.weight.unwrap_or(styling.weight).into(),
+                        face,
+                    )
+                })
+                .flatten()
+        })
 }
 
 pub(crate) fn cache_glyph(
