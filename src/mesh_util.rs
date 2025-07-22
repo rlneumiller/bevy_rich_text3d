@@ -120,13 +120,27 @@ impl<'t> ExtractedMesh<'t> {
         magic_number: f32,
         styling: &Text3dStyling,
     ) {
-        let i = self.positions.len() as u16;
-        self.indices.extend([i, i + 1, i + 2, i + 1, i + 3, i + 2]);
-
         let mesh_rect = Rect {
             min: base,
             max: base + texture.size() / scale_factor,
         };
+        self.cache_rectangle2(mesh_rect, texture, color, z, real_index, advance, magic_number, styling);
+    }
+
+    pub fn cache_rectangle2(
+        &mut self,
+        mesh_rect: Rect,
+        texture: Rect,
+        color: Srgba,
+        z: f32,
+        real_index: usize,
+        advance: f32,
+        magic_number: f32,
+        styling: &Text3dStyling,
+    ) {
+        let i = self.positions.len() as u16;
+        self.indices.extend([i, i + 1, i + 2, i + 1, i + 3, i + 2]);
+
 
         self.positions.extend(corners_z(mesh_rect, z));
         self.normals.extend([[0., 0., 1.]; 4]);

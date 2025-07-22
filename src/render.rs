@@ -61,12 +61,8 @@ fn get_mesh<'t>(
 enum DrawType {
     Fill,
     Stroke(NonZero<u32>),
-    /// For underscore and strikethrough, unimplemented for now.
-    #[allow(unused)]
-    Line {
-        base: f32,
-        width: f32,
-    },
+    Underscore,
+    Strikethrough,
 }
 
 pub struct DrawRequest {
@@ -75,6 +71,11 @@ pub struct DrawRequest {
     offset: Vec2,
     z: f32,
 }
+
+const FILLED_RECT: Rect = Rect {
+    min: Vec2::ZERO,
+    max: Vec2::ZERO,
+};
 
 impl Text3dStyling {
     /// Note: Things drawn last gets rendered first.
@@ -279,13 +280,16 @@ pub fn text_render(
         for run in buffer.layout_runs() {
             width = width.max(run.line_w);
             height = height.max(run.line_top + run.line_height);
-            for glyph in run.glyphs.iter() {
+            for glyph_index in 0..run.glyphs.len() {
+                let glyph = &run.glyphs[glyph_index];
                 let Some((_, attrs)) = text.segments.get(glyph.metadata) else {
                     continue;
                 };
                 let dx = -run.line_w * styling.align.as_fac();
 
                 styling.fill_draw_requests(attrs, &mut draw_requests);
+
+                let magic_number = attrs.magic_number.unwrap_or(0.);
 
                 for DrawRequest {
                     request,
@@ -297,7 +301,24 @@ pub fn text_render(
                     let stroke = match request {
                         DrawType::Fill => None,
                         DrawType::Stroke(size) => Some(size),
-                        DrawType::Line { base: _, width: _ } => todo!(),
+                        mode @ (DrawType::Strikethrough | DrawType::Underscore) => {
+                            let mode = LineMode::from_draw_req(mode);
+                            let (min, max) = mode.boundary(run.glyphs, &text.segments, glyph_index);
+                            let Some(rect) = mode.get_line_rect(font_system, styling.size, min, max, glyph) else {
+                                continue;
+                            };
+                            mesh.cache_rectangle2(
+                                rect,
+                                FILLED_RECT,
+                                color,
+                                z,
+                                real_index,
+                                advance + min,
+                                magic_number,
+                                &styling,
+                            );
+                            continue;
+                        },
                     };
                     let Some((pixel_rect, base)) = get_atlas_rect(
                         font_system,
@@ -321,7 +342,6 @@ pub fn text_render(
                     let base =
                         Vec2::new(glyph.x, glyph.y) + base + offset + Vec2::new(dx, -run.line_y);
 
-                    let magic_number = attrs.magic_number.unwrap_or(0.);
 
                     mesh.cache_rectangle(
                         base,
@@ -362,6 +382,78 @@ pub fn text_render(
         output.atlas_dimension = IVec2::new(image.width() as i32, image.height() as i32);
 
         mesh.pixel_to_uv(image);
+    }
+}
+
+enum LineMode {
+    Underscore,
+    Strikethrough
+}
+
+impl LineMode {
+    fn from_draw_req(req: DrawType) -> LineMode {
+        match req {
+            DrawType::Underscore => LineMode::Underscore,
+            DrawType::Strikethrough => LineMode::Strikethrough,
+            _ => unreachable!()
+        }
+    }
+
+    fn validate(&self, style: &SegmentStyle) -> bool {
+        match self {
+            LineMode::Underscore => style.underscore,
+            LineMode::Strikethrough => style.strikethrough,
+        }
+    }
+    
+    fn boundary(&self, glyphs: &[LayoutGlyph], segments: &[(Text3dSegment, SegmentStyle)], index: usize) -> (f32, f32) {
+        let current = &glyphs[index];
+        let mut min = current.x;
+        let mut max = current.x + current.w;
+        if let Some(prev) = glyphs.get(index.wrapping_sub(1)) {
+            if prev.font_id == current.font_id && prev.font_size == current.font_size {
+                if let Some((_, style)) = segments.get(prev.metadata) {
+                    if self.validate(style) {
+                        min = (prev.x + prev.w + current.x) / 2.;
+                    }
+                }
+            } 
+        } 
+        if let Some(next) = glyphs.get(index.wrapping_add(1)) {
+            if next.font_id == current.font_id && next.font_size == current.font_size {
+                if let Some((_, style)) = segments.get(next.metadata) {
+                    if self.validate(style) {
+                        max = (current.x + current.w + next.x) / 2.;
+                    }
+                }
+            } 
+        }
+        (min, max)
+    }
+
+    fn get_line_rect(
+        &self, 
+        font_system: &mut FontSystem,
+        size: f32,
+        min: f32,
+        max: f32,
+        glyph: &LayoutGlyph
+    ) -> Option<Rect> {
+        font_system
+            .db()
+            .with_face_data(glyph.font_id, |file, _| {
+                let Ok(face) = Face::parse(file, 0) else {
+                    return None;
+                };
+                let metrics = match self {
+                    LineMode::Underscore => face.underline_metrics()?,
+                    LineMode::Strikethrough => face.strikeout_metrics()?,
+                };
+                let base = metrics.position as f32 / face.units_per_em() as f32 * size;
+                let height = metrics.thickness as f32 / face.units_per_em() as f32 * size;
+                Some(Rect { min: Vec2::new(min, base), max: Vec2::new(max, base + height) })
+            })
+            .flatten()
     }
 }
 
