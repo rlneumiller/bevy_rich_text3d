@@ -1,6 +1,6 @@
 use bevy::{
     asset::{AssetId, Assets, RenderAssetUsages},
-    color::{ColorToComponents, LinearRgba, Srgba},
+    color::Srgba,
     ecs::{
         change_detection::DetectChanges,
         system::{Local, Query, Res, ResMut},
@@ -19,32 +19,12 @@ use zeno::{Cap, Command as ZCommand, Format, Mask, Stroke, Style, Transform, Vec
 
 use crate::{
     fetch::FetchedTextSegment,
+    mesh_util::ExtractedMesh,
     styling::GlyphEntry,
     text3d::{Text3d, Text3dSegment},
-    GlyphMeta, SegmentStyle, StrokeJoin, Text3dBounds, Text3dDimensionOut, Text3dPlugin,
-    Text3dStyling, TextAtlas, TextAtlasHandle, TextRenderer,
+    SegmentStyle, StrokeJoin, Text3dBounds, Text3dDimensionOut, Text3dPlugin, Text3dStyling,
+    TextAtlas, TextAtlasHandle, TextRenderer,
 };
-
-fn corners(rect: Rect) -> [[f32; 2]; 4] {
-    [
-        [rect.min.x, rect.min.y],
-        [rect.max.x, rect.min.y],
-        [rect.min.x, rect.max.y],
-        [rect.max.x, rect.max.y],
-    ]
-}
-
-// Take the allocation if possible but clear the data.
-macro_rules! recycle_mesh {
-    ($mesh: expr, $attr: ident, $ty: ident) => {
-        if let Some(VertexAttributeValues::$ty(mut v)) = $mesh.remove_attribute(Mesh::$attr) {
-            v.clear();
-            v
-        } else {
-            Vec::new()
-        }
-    };
-}
 
 fn default_mesh() -> Mesh {
     Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::all())
@@ -285,23 +265,10 @@ pub fn text_render(
             continue;
         };
 
-        let mut positions = recycle_mesh!(mesh, ATTRIBUTE_POSITION, Float32x3);
-        let mut normals = recycle_mesh!(mesh, ATTRIBUTE_NORMAL, Float32x3);
-        let mut uv0 = recycle_mesh!(mesh, ATTRIBUTE_UV_0, Float32x2);
-        let mut uv1 = recycle_mesh!(mesh, ATTRIBUTE_UV_1, Float32x2);
-        let mut colors = recycle_mesh!(mesh, ATTRIBUTE_COLOR, Float32x4);
-
-        let mut indices = if let Some(Indices::U16(indices)) = mesh.remove_indices() {
-            indices
-        } else {
-            Vec::new()
-        };
-        indices.clear();
+        let mut mesh = ExtractedMesh::new(mesh);
 
         let mut width = 0.0f32;
-        let mut sum_width = 0.0f32;
-
-        let mut idx = 0;
+        let mut advance = 0.0f32;
         let mut real_index = 0;
 
         let mut tess_commands = CommandEncoder::default();
@@ -368,73 +335,31 @@ pub fn text_render(
                         continue;
                     };
 
-                    let i = idx as u16 * 4;
-                    indices.extend([i, i + 1, i + 2, i + 1, i + 3, i + 2]);
-                    idx += 1;
+                    let dw = glyph.x + base.x;
 
-                    let local_x0 = glyph.x + base.x;
-                    let local_x1 = local_x0 + pixel_rect.width() / scale_factor;
+                    min_x = min_x.min(dw + dx);
+                    max_x = max_x.max(dw + dx + pixel_rect.width() / scale_factor);
 
-                    min_x = min_x.min(local_x0 + dx);
-                    max_x = max_x.max(local_x1 + dx);
+                    let base =
+                        Vec2::new(glyph.x, glyph.y) + base + offset + Vec2::new(dx, -run.line_y);
 
-                    let x0 = local_x0 + dx + offset.x;
-                    let y0 = glyph.y + base.y - run.line_y + offset.y;
-                    let x1 = local_x1 + dx + offset.x;
-                    let y1 = y0 + pixel_rect.height() / scale_factor + offset.y;
-                    positions.extend([[x0, y0, z], [x1, y0, z], [x0, y1, z], [x1, y1, z]]);
+                    let magic_number = attrs.magic_number.unwrap_or(0.);
 
-                    normals.extend([[0., 0., 1.]; 4]);
-
-                    // First we cache the pixel position since the texture may be resized.
-                    uv0.extend(corners(pixel_rect));
-
-                    let mut uv1_buffer = [[0., 0.], [0., 0.], [0., 0.], [0., 0.]];
-
-                    for (meta_type, i) in [(styling.uv1.0, 0), (styling.uv1.1, 1)] {
-                        match meta_type {
-                            GlyphMeta::Index => {
-                                for pair in &mut uv1_buffer {
-                                    pair[i] = real_index as f32;
-                                }
-                            }
-                            GlyphMeta::Advance => {
-                                let x0 = (local_x0 + sum_width) / styling.size;
-                                let x1 = (local_x0 + sum_width) / styling.size;
-                                uv1_buffer[0][i] = x0;
-                                uv1_buffer[1][i] = x1;
-                                uv1_buffer[2][i] = x0;
-                                uv1_buffer[3][i] = x1;
-                            }
-                            GlyphMeta::PerGlyphAdvance => {
-                                let x = (glyph.x
-                                    + base.x
-                                    + pixel_rect.width() / scale_factor / 2.0
-                                    + sum_width)
-                                    / styling.size;
-                                uv1_buffer[0][i] = x;
-                                uv1_buffer[1][i] = x;
-                                uv1_buffer[2][i] = x;
-                                uv1_buffer[3][i] = x;
-                            }
-                            GlyphMeta::MagicNumber => {
-                                uv1_buffer[0][i] = attrs.magic_number.unwrap_or(0.);
-                                uv1_buffer[1][i] = attrs.magic_number.unwrap_or(0.);
-                                uv1_buffer[2][i] = attrs.magic_number.unwrap_or(0.);
-                                uv1_buffer[3][i] = attrs.magic_number.unwrap_or(0.);
-                            }
-                            GlyphMeta::RowX => (),
-                            GlyphMeta::ColY => (),
-                        }
-                    }
-
-                    uv1.extend(uv1_buffer);
-
-                    colors.extend([LinearRgba::from(color).to_f32_array(); 4]);
+                    mesh.cache_rectangle(
+                        base,
+                        pixel_rect,
+                        color,
+                        scale_factor,
+                        z,
+                        real_index,
+                        advance + dw,
+                        magic_number,
+                        &styling,
+                    );
                 }
                 real_index += 1;
             }
-            sum_width += run.line_w;
+            advance += run.line_w;
         }
 
         if max_x < min_x {
@@ -447,29 +372,15 @@ pub fn text_render(
         let offset = *styling.anchor * dimension - center;
         let bb_min = Vec2::new(min_x, -height);
 
-        for (meta_type, i) in [(styling.uv1.0, 0), (styling.uv1.1, 1)] {
-            match meta_type {
-                GlyphMeta::RowX => {
-                    for (uv1, position) in uv1.iter_mut().zip(positions.iter()) {
-                        uv1[i] = (position[0] - bb_min.x) / dimension.x;
-                    }
-                }
-                GlyphMeta::ColY => {
-                    for (uv1, position) in uv1.iter_mut().zip(positions.iter()) {
-                        uv1[i] = (position[1] - bb_min.y) / dimension.y;
-                    }
-                }
-                _ => (),
-            }
-        }
+        mesh.post_process_uv1(&styling, bb_min, dimension);
 
         if let Some(world_scale) = styling.world_scale {
-            positions.iter_mut().for_each(|[x, y, _]| {
+            mesh.positions.iter_mut().for_each(|[x, y, _]| {
                 *x = (*x + offset.x) * world_scale.x / styling.size;
                 *y = (*y + offset.y) * world_scale.y / styling.size;
             });
         } else {
-            positions.iter_mut().for_each(|[x, y, _]| {
+            mesh.positions.iter_mut().for_each(|[x, y, _]| {
                 *x += offset.x;
                 *y += offset.y;
             });
@@ -478,30 +389,7 @@ pub fn text_render(
         output.dimension = dimension;
         output.atlas_dimension = IVec2::new(image.width() as i32, image.height() as i32);
 
-        let inv_width = 1.0 / image.width() as f32;
-        let inv_height = 1.0 / image.height() as f32;
-
-        uv0.iter_mut().for_each(|[x, y]| {
-            *x *= inv_width;
-            *y *= inv_height;
-        });
-
-        if !positions.is_empty() {
-            mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
-            mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-            mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
-            mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uv0);
-            mesh.insert_attribute(Mesh::ATTRIBUTE_UV_1, uv1);
-            mesh.insert_indices(Indices::U16(indices));
-        } else {
-            // Placeholder, since empty mesh panics on some platforms.
-            mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vec![[0.0, 0.0, 0.0]; 3]);
-            mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, vec![[0.0, 1.0, 0.0]; 3]);
-            mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, vec![[0.0, 0.0, 0.0, 0.0]; 3]);
-            mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, vec![[0.0, 0.0]; 3]);
-            mesh.insert_attribute(Mesh::ATTRIBUTE_UV_1, vec![[0.0, 0.0]; 3]);
-            mesh.insert_indices(Indices::U16(vec![0, 1, 2]));
-        }
+        mesh.pixel_to_uv(image);
     }
 }
 
