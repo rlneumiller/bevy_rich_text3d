@@ -390,12 +390,13 @@ pub fn text_render(
                             let line = mode.select(&mut underscore_run, &mut strikethrough_run);
                             if !line.contains(glyph) {
                                 *line = mode.new_run(
-                                    styling.size,
+                                    mode.size(font_system, glyph.font_id, glyph.font_size),
                                     glyph_index,
                                     run.glyphs,
                                     &text.segments,
                                 );
                             }
+                            let stroke = request.stroke().map(|x| x.get()).unwrap_or(0) as f32 * glyph.font_size / 200.;
                             let Some(uv_rect) = mode.get_atlas_rect(
                                 font_system,
                                 glyph.font_id,
@@ -413,42 +414,45 @@ pub fn text_render(
                                 run.glyphs,
                                 &text.segments,
                                 glyph_index,
+                                request.stroke(),
                             );
-                            let Some(rect) = mode.get_line_rect(
-                                font_system,
-                                styling.size,
-                                min,
-                                max,
-                                glyph,
-                            ) else {
-                                continue;
-                            };
-                            let rect = Rect {
-                                min: rect.min + offset + Vec2::new(dx, -run.line_y),
-                                max: rect.max + offset + Vec2::new(dx, -run.line_y),
-                            };
-                            let uv_min = line.uv_x(min);
-                            let uv_max = line.uv_x(max);
-                            let result_rect = Rect {
-                                min: Vec2::new(
-                                    uv_rect.min.x + uv_rect.size().x * uv_min,
-                                    uv_rect.min.y,
-                                ),
-                                max: Vec2::new(
-                                    uv_rect.min.x + uv_rect.size().x * uv_max,
-                                    uv_rect.max.y,
-                                ),
-                            };
-                            mesh.cache_rectangle2(
-                                rect,
-                                result_rect,
-                                color,
-                                z,
-                                real_index,
-                                advance + min,
-                                magic_number,
-                                &styling,
-                            );
+                            for ((min, uv_min), (max, uv_max)) in line.uv_range(min, max, stroke).iter() {
+                                let Some(rect) = mode.get_line_rect(
+                                    font_system,
+                                    styling.size,
+                                    min,
+                                    max,
+                                    request.stroke(),
+                                    glyph,
+                                ) else {
+                                    continue;
+                                };
+                                let rect = Rect {
+                                    min: rect.min + offset + Vec2::new(dx, -run.line_y),
+                                    max: rect.max + offset + Vec2::new(dx, -run.line_y),
+                                };
+                                let result_rect = Rect {
+                                    min: Vec2::new(
+                                        uv_rect.min.x + uv_rect.size().x * uv_min,
+                                        uv_rect.min.y,
+                                    ),
+                                    max: Vec2::new(
+                                        uv_rect.min.x + uv_rect.size().x * uv_max,
+                                        uv_rect.max.y,
+                                    ),
+                                };
+                                mesh.cache_rectangle2(
+                                    rect,
+                                    result_rect,
+                                    color,
+                                    z,
+                                    real_index,
+                                    advance + min,
+                                    magic_number,
+                                    &styling,
+                                );
+                            }
+                            
                         }
                     };
                 }

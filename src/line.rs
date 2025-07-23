@@ -1,4 +1,4 @@
-use std::num::NonZero;
+use std::num::{NonZero, NonZeroU32};
 
 use bevy::{
     image::Image,
@@ -46,17 +46,43 @@ impl LineRun {
         !(self.min_index > glyph.end || self.max_index < glyph.start)
     }
 
-    pub fn uv_x(&self, local_x: f32) -> f32 {
-        let corner = (self.max_offset - self.min_offset).min(self.size) / 2.0;
-        match local_x {
+    pub fn uv_range(&self, min: f32, max: f32, stroke: f32) -> UvRanges {
+        let r_min = self.min_offset - stroke;
+        let r_max = self.max_offset + stroke;
+        let corner = (r_max - r_min).min(self.size + stroke * 2.0) / 2.0;
+        let f = |x| match x {
             x if x <= self.min_offset => 0.0,
             x if x >= self.max_offset => 1.0,
             x if x <= self.min_offset + corner => (x - self.min_offset) / corner / 2.0,
             x if x >= self.max_offset - corner => (self.max_offset - x) / corner / 2.0 + 0.5,
             _ => 0.5,
+        };
+        if min < min + corner && max > min + corner {
+            let center = min + corner;
+            UvRanges::Two([((min, f(min)), (center, 0.5)), ((center, 0.5), (max, 0.5))])
+        } else if min < max - corner && max > max - corner {
+            let center = max - corner;
+            UvRanges::Two([((min, 0.5), (center, 0.5)), ((center, 0.5), (max, f(max)))])
+        } else {
+            UvRanges::One(((min, f(min)), (max, f(max))))
         }
     }
 }
+
+pub enum UvRanges {
+    One(((f32, f32), (f32, f32))),
+    Two([((f32, f32), (f32, f32)); 2]),
+}
+
+impl UvRanges {
+    pub fn iter(&self) -> impl Iterator<Item = ((f32, f32), (f32, f32))> + use <'_>{
+        match self {
+            UvRanges::One(v) => std::array::from_ref(v).iter().copied(),
+            UvRanges::Two(v) => v.iter().copied(),
+        }
+    }
+}
+
 
 impl From<LineMode> for GlyphTextureOf {
     fn from(value: LineMode) -> Self {
@@ -123,10 +149,12 @@ impl LineMode {
         glyphs: &[LayoutGlyph],
         segments: &[(Text3dSegment, SegmentStyle)],
         index: usize,
+        stroke: Option<NonZeroU32>,
     ) -> (f32, f32) {
         let current = &glyphs[index];
-        let mut min = current.x;
-        let mut max = current.x + current.w;
+        let stroke = stroke.map(|x| x.get()).unwrap_or(0) as f32 * current.font_size / 200.0;
+        let mut min = current.x - stroke;
+        let mut max = current.x + current.w + stroke;
         if let Some(prev) = glyphs.get(index.wrapping_sub(1)) {
             if prev.font_id == current.font_id && prev.font_size == current.font_size {
                 if let Some((_, style)) = segments.get(prev.metadata) {
@@ -148,14 +176,36 @@ impl LineMode {
         (min, max)
     }
 
+    pub fn size(
+        &self,
+        font_system: &mut FontSystem,
+        id: ID,
+        size: f32,
+    ) -> f32 {
+        font_system
+            .db()
+            .with_face_data(id, |file, _| {
+                let Ok(face) = Face::parse(file, 0) else {
+                    return None;
+                };
+                let metrics = match self {
+                    LineMode::Underscore => face.underline_metrics()?,
+                    LineMode::Strikethrough => face.underline_metrics()?,
+                };
+                Some(metrics.thickness as f32 / face.units_per_em() as f32 * size)
+            }).flatten().unwrap_or(size)
+    }
+
     pub fn get_line_rect(
         &self,
         font_system: &mut FontSystem,
         size: f32,
         min: f32,
         max: f32,
+        stroke: Option<NonZeroU32>,
         glyph: &LayoutGlyph,
     ) -> Option<Rect> {
+        let stroke = stroke.map(|x| x.get()).unwrap_or(0) as f32 * size / 200.;
         font_system
             .db()
             .with_face_data(glyph.font_id, |file, _| {
@@ -169,8 +219,8 @@ impl LineMode {
                 let base = metrics.position as f32 / face.units_per_em() as f32 * size;
                 let height = metrics.thickness as f32 / face.units_per_em() as f32 * size;
                 Some(Rect {
-                    min: Vec2::new(min, base),
-                    max: Vec2::new(max, base + height),
+                    min: Vec2::new(min, base - height - stroke),
+                    max: Vec2::new(max, base + stroke),
                 })
             })
             .flatten()
