@@ -109,8 +109,8 @@ pub struct SegmentStyle {
     pub stroke: Option<NonZeroU32>,
     pub weight: Option<Weight>,
     pub style: Option<Style>,
-    pub underscore: bool,
-    pub strikethrough: bool,
+    pub underscore: Option<bool>,
+    pub strikethrough: Option<bool>,
     /// Can be referenced by [`GlyphMeta::MagicNumber`].
     pub magic_number: Option<f32>,
 }
@@ -133,8 +133,8 @@ impl SegmentStyle {
             fill: other.fill.or(self.fill),
             stroke: other.stroke.or(self.stroke),
             weight: other.weight.or(self.weight),
-            underscore: other.strikethrough,
-            strikethrough: other.strikethrough,
+            underscore: other.underscore.or(self.underscore),
+            strikethrough: other.strikethrough.or(self.strikethrough),
             style: other.style.or(self.style),
             magic_number: other.magic_number.or(self.magic_number),
         }

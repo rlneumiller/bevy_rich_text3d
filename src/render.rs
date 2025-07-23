@@ -111,7 +111,7 @@ impl Text3dStyling {
                         offset: Vec2::ZERO,
                         z: 0.,
                     });
-                    if attrs.underscore {
+                    if attrs.underscore.is_some_and(|x| x) {
                         requests.push(DrawRequest {
                             request: DrawType::FillLine(LineMode::Underscore),
                             color,
@@ -119,7 +119,7 @@ impl Text3dStyling {
                             z: 0.,
                         });
                     }
-                    if attrs.strikethrough {
+                    if attrs.strikethrough.is_some_and(|x| x) {
                         requests.push(DrawRequest {
                             request: DrawType::FillLine(LineMode::Strikethrough),
                             color,
@@ -133,6 +133,7 @@ impl Text3dStyling {
         macro_rules! stroke {
             () => {
                 if let Some(stroke) = attrs.stroke.or(self.stroke) {
+                    let color = attrs.stroke_color.unwrap_or(self.stroke_color);
                     if let Some((color, offset)) = self.text_shadow {
                         requests.push(DrawRequest {
                             request: DrawType::Stroke(stroke),
@@ -143,10 +144,28 @@ impl Text3dStyling {
                     }
                     requests.push(DrawRequest {
                         request: DrawType::Stroke(stroke),
-                        color: attrs.stroke_color.unwrap_or(self.stroke_color),
+                        color,
                         offset: Vec2::ZERO,
                         z: 0.,
                     });
+
+                    if attrs.underscore.is_some_and(|x| x) {
+                        requests.push(DrawRequest {
+                            request: DrawType::StrokeLine(stroke, LineMode::Underscore),
+                            color,
+                            offset: Vec2::ZERO,
+                            z: 0.,
+                        });
+                    }
+
+                    if attrs.strikethrough.is_some_and(|x| x) {
+                        requests.push(DrawRequest {
+                            request: DrawType::StrokeLine(stroke, LineMode::Strikethrough),
+                            color,
+                            offset: Vec2::ZERO,
+                            z: 0.,
+                        });
+                    }
                 }
             };
         }
@@ -306,6 +325,7 @@ pub fn text_render(
 
         let mut min_x = f32::MAX;
         let mut max_x = f32::MIN;
+
         for run in buffer.layout_runs() {
             width = width.max(run.line_w);
             height = height.max(run.line_top + run.line_height);
@@ -329,9 +349,43 @@ pub fn text_render(
                     z,
                 } in draw_requests.drain(..)
                 {
-                    let stroke = match request {
-                        DrawType::Fill => None,
-                        DrawType::Stroke(size) => Some(size),
+                    match request {
+                        DrawType::Fill | DrawType::Stroke(_) => {
+                            let stroke = request.stroke();
+                            let Some((pixel_rect, base)) = get_atlas_rect(
+                                font_system,
+                                scale_factor,
+                                &styling,
+                                atlas,
+                                image,
+                                &mut tess_commands,
+                                glyph,
+                                attrs,
+                                stroke,
+                            ) else {
+                                continue;
+                            };
+
+                            let dw = glyph.x + base.x;
+
+                            min_x = min_x.min(dw + dx);
+                            max_x = max_x.max(dw + dx + glyph.w);
+
+                            let base =
+                                Vec2::new(glyph.x, glyph.y) + base + offset + Vec2::new(dx, -run.line_y);
+
+                            mesh.cache_rectangle(
+                                base,
+                                pixel_rect,
+                                color,
+                                scale_factor,
+                                z,
+                                real_index,
+                                advance + dw,
+                                magic_number,
+                                &styling,
+                            );
+                        },
                         DrawType::FillLine(mode) | DrawType::StrokeLine(_, mode) => {
                             let line = mode.select(&mut underscore_run, &mut strikethrough_run);
                             if !line.contains(glyph) {
@@ -355,12 +409,12 @@ pub fn text_render(
                             ) else {
                                 continue;
                             };
-                            let (min, max) = LineMode::Strikethrough.boundary(
+                            let (min, max) = mode.boundary(
                                 run.glyphs,
                                 &text.segments,
                                 glyph_index,
                             );
-                            let Some(rect) = LineMode::Strikethrough.get_line_rect(
+                            let Some(rect) = mode.get_line_rect(
                                 font_system,
                                 styling.size,
                                 min,
@@ -369,8 +423,12 @@ pub fn text_render(
                             ) else {
                                 continue;
                             };
-                            let uv_min = strikethrough_run.uv_x(min);
-                            let uv_max = strikethrough_run.uv_x(max);
+                            let rect = Rect {
+                                min: rect.min + offset + Vec2::new(dx, -run.line_y),
+                                max: rect.max + offset + Vec2::new(dx, -run.line_y),
+                            };
+                            let uv_min = line.uv_x(min);
+                            let uv_max = line.uv_x(max);
                             let result_rect = Rect {
                                 min: Vec2::new(
                                     uv_rect.min.x + uv_rect.size().x * uv_min,
@@ -391,42 +449,8 @@ pub fn text_render(
                                 magic_number,
                                 &styling,
                             );
-                            continue;
                         }
                     };
-                    let Some((pixel_rect, base)) = get_atlas_rect(
-                        font_system,
-                        scale_factor,
-                        &styling,
-                        atlas,
-                        image,
-                        &mut tess_commands,
-                        glyph,
-                        attrs,
-                        stroke,
-                    ) else {
-                        continue;
-                    };
-
-                    let dw = glyph.x + base.x;
-
-                    min_x = min_x.min(dw + dx);
-                    max_x = max_x.max(dw + dx + glyph.w);
-
-                    let base =
-                        Vec2::new(glyph.x, glyph.y) + base + offset + Vec2::new(dx, -run.line_y);
-
-                    mesh.cache_rectangle(
-                        base,
-                        pixel_rect,
-                        color,
-                        scale_factor,
-                        z,
-                        real_index,
-                        advance + dw,
-                        magic_number,
-                        &styling,
-                    );
                 }
                 real_index += 1;
             }
@@ -500,8 +524,9 @@ fn get_atlas_rect(
                     )
                 })
                 .flatten()
-                .map(|(rect, offset)| (rect, offset / scale_factor))
+                
         })
+        .map(|(rect, offset)| (rect, offset / scale_factor))
 }
 
 pub(crate) fn cache_glyph(

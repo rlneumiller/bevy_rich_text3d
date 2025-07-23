@@ -13,6 +13,7 @@ use crate::{
     SegmentStyle, Text3dSegment, Text3dStyling, TextAtlas,
 };
 
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct LineRun {
     pub min_index: usize,
     pub max_index: usize,
@@ -112,8 +113,8 @@ impl LineMode {
 
     pub fn validate(&self, style: &SegmentStyle) -> bool {
         match self {
-            LineMode::Underscore => style.underscore,
-            LineMode::Strikethrough => style.strikethrough,
+            LineMode::Underscore => style.underscore.unwrap_or_default(),
+            LineMode::Strikethrough => style.strikethrough.unwrap_or_default(),
         }
     }
 

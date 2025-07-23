@@ -217,12 +217,12 @@ fn parse_style(
 ) -> Result<SegmentStyle, ParseError> {
     if style == "_" {
         Ok(SegmentStyle {
-            underscore: true,
+            underscore: Some(true),
             ..Default::default()
         })
     } else if style == "~" {
         Ok(SegmentStyle {
-            strikethrough: true,
+            strikethrough: Some(true),
             ..Default::default()
         })
     } else if style.starts_with("v-") {
