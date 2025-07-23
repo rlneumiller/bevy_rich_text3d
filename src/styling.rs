@@ -144,10 +144,22 @@ impl SegmentStyle {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct GlyphEntry {
     pub font: ID,
-    pub glyph_id: u16,
+    pub glyph_id: GlyphTextureOf,
     pub join: StrokeJoin,
     pub size: FloatOrd,
     pub weight: Weight,
-    /// If is none, render in fill mode.
     pub stroke: Option<NonZeroU32>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum GlyphTextureOf {
+    Id(u16),
+    UnderscoreTexture,
+    StrikethroughTexture,
+}
+
+impl From<u16> for GlyphTextureOf {
+    fn from(id: u16) -> Self {
+        GlyphTextureOf::Id(id)
+    }
 }

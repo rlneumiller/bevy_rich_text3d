@@ -124,7 +124,16 @@ impl<'t> ExtractedMesh<'t> {
             min: base,
             max: base + texture.size() / scale_factor,
         };
-        self.cache_rectangle2(mesh_rect, texture, color, z, real_index, advance, magic_number, styling);
+        self.cache_rectangle2(
+            mesh_rect,
+            texture,
+            color,
+            z,
+            real_index,
+            advance,
+            magic_number,
+            styling,
+        );
     }
 
     pub fn cache_rectangle2(
@@ -140,7 +149,6 @@ impl<'t> ExtractedMesh<'t> {
     ) {
         let i = self.positions.len() as u16;
         self.indices.extend([i, i + 1, i + 2, i + 1, i + 3, i + 2]);
-
 
         self.positions.extend(corners_z(mesh_rect, z));
         self.normals.extend([[0., 0., 1.]; 4]);

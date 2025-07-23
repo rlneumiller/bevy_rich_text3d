@@ -11,16 +11,17 @@ use bevy::{
     render::mesh::{Indices, Mesh, Mesh2d, Mesh3d, PrimitiveTopology, VertexAttributeValues},
 };
 use cosmic_text::{
-    ttf_parser::{Face, GlyphId, OutlineBuilder},
+    ttf_parser::{Face, GlyphId},
     Attrs, Buffer, Family, FontSystem, LayoutGlyph, Metrics, Shaping, Weight, Wrap,
 };
 use std::num::NonZero;
-use zeno::{Cap, Command as ZCommand, Format, Mask, Stroke, Style, Transform, Vector};
 
 use crate::{
     fetch::FetchedTextSegment,
+    line::{LineMode, LineRun},
     mesh_util::ExtractedMesh,
     styling::GlyphEntry,
+    tess::CommandEncoder,
     text3d::{Text3d, Text3dSegment},
     SegmentStyle, StrokeJoin, Text3dBounds, Text3dDimensionOut, Text3dPlugin, Text3dStyling,
     TextAtlas, TextAtlasHandle, TextRenderer,
@@ -61,8 +62,19 @@ fn get_mesh<'t>(
 enum DrawType {
     Fill,
     Stroke(NonZero<u32>),
-    Underscore,
-    Strikethrough,
+    FillLine(LineMode),
+    StrokeLine(NonZero<u32>, LineMode),
+}
+
+impl DrawType {
+    fn stroke(&self) -> Option<NonZero<u32>> {
+        match self {
+            DrawType::Fill => None,
+            DrawType::Stroke(v) => Some(*v),
+            DrawType::FillLine(_) => None,
+            DrawType::StrokeLine(v, _) => Some(*v),
+        }
+    }
 }
 
 pub struct DrawRequest {
@@ -84,6 +96,7 @@ impl Text3dStyling {
         macro_rules! fill {
             () => {
                 if attrs.fill.unwrap_or(self.fill) {
+                    let color = attrs.fill_color.unwrap_or(self.color);
                     if let Some((color, offset)) = self.text_shadow {
                         requests.push(DrawRequest {
                             request: DrawType::Fill,
@@ -94,10 +107,26 @@ impl Text3dStyling {
                     }
                     requests.push(DrawRequest {
                         request: DrawType::Fill,
-                        color: attrs.fill_color.unwrap_or(self.color),
+                        color,
                         offset: Vec2::ZERO,
                         z: 0.,
                     });
+                    if attrs.underscore {
+                        requests.push(DrawRequest {
+                            request: DrawType::FillLine(LineMode::Underscore),
+                            color,
+                            offset: Vec2::ZERO,
+                            z: 0.,
+                        });
+                    }
+                    if attrs.strikethrough {
+                        requests.push(DrawRequest {
+                            request: DrawType::FillLine(LineMode::Strikethrough),
+                            color,
+                            offset: Vec2::ZERO,
+                            z: 0.,
+                        });
+                    }
                 }
             };
         }
@@ -280,6 +309,8 @@ pub fn text_render(
         for run in buffer.layout_runs() {
             width = width.max(run.line_w);
             height = height.max(run.line_top + run.line_height);
+            let mut underscore_run = LineRun::default();
+            let mut strikethrough_run = LineRun::default();
             for glyph_index in 0..run.glyphs.len() {
                 let glyph = &run.glyphs[glyph_index];
                 let Some((_, attrs)) = text.segments.get(glyph.metadata) else {
@@ -301,15 +332,58 @@ pub fn text_render(
                     let stroke = match request {
                         DrawType::Fill => None,
                         DrawType::Stroke(size) => Some(size),
-                        mode @ (DrawType::Strikethrough | DrawType::Underscore) => {
-                            let mode = LineMode::from_draw_req(mode);
-                            let (min, max) = mode.boundary(run.glyphs, &text.segments, glyph_index);
-                            let Some(rect) = mode.get_line_rect(font_system, styling.size, min, max, glyph) else {
+                        DrawType::FillLine(mode) | DrawType::StrokeLine(_, mode) => {
+                            let line = mode.select(&mut underscore_run, &mut strikethrough_run);
+                            if !line.contains(glyph) {
+                                *line = mode.new_run(
+                                    styling.size,
+                                    glyph_index,
+                                    run.glyphs,
+                                    &text.segments,
+                                );
+                            }
+                            let Some(uv_rect) = mode.get_atlas_rect(
+                                font_system,
+                                glyph.font_id,
+                                scale_factor,
+                                atlas,
+                                image,
+                                &mut tess_commands,
+                                attrs,
+                                &styling,
+                                request.stroke(),
+                            ) else {
                                 continue;
+                            };
+                            let (min, max) = LineMode::Strikethrough.boundary(
+                                run.glyphs,
+                                &text.segments,
+                                glyph_index,
+                            );
+                            let Some(rect) = LineMode::Strikethrough.get_line_rect(
+                                font_system,
+                                styling.size,
+                                min,
+                                max,
+                                glyph,
+                            ) else {
+                                continue;
+                            };
+                            let uv_min = strikethrough_run.uv_x(min);
+                            let uv_max = strikethrough_run.uv_x(max);
+                            let result_rect = Rect {
+                                min: Vec2::new(
+                                    uv_rect.min.x + uv_rect.size().x * uv_min,
+                                    uv_rect.min.y,
+                                ),
+                                max: Vec2::new(
+                                    uv_rect.min.x + uv_rect.size().x * uv_max,
+                                    uv_rect.max.y,
+                                ),
                             };
                             mesh.cache_rectangle2(
                                 rect,
-                                FILLED_RECT,
+                                result_rect,
                                 color,
                                 z,
                                 real_index,
@@ -318,7 +392,7 @@ pub fn text_render(
                                 &styling,
                             );
                             continue;
-                        },
+                        }
                     };
                     let Some((pixel_rect, base)) = get_atlas_rect(
                         font_system,
@@ -341,7 +415,6 @@ pub fn text_render(
 
                     let base =
                         Vec2::new(glyph.x, glyph.y) + base + offset + Vec2::new(dx, -run.line_y);
-
 
                     mesh.cache_rectangle(
                         base,
@@ -385,78 +458,6 @@ pub fn text_render(
     }
 }
 
-enum LineMode {
-    Underscore,
-    Strikethrough
-}
-
-impl LineMode {
-    fn from_draw_req(req: DrawType) -> LineMode {
-        match req {
-            DrawType::Underscore => LineMode::Underscore,
-            DrawType::Strikethrough => LineMode::Strikethrough,
-            _ => unreachable!()
-        }
-    }
-
-    fn validate(&self, style: &SegmentStyle) -> bool {
-        match self {
-            LineMode::Underscore => style.underscore,
-            LineMode::Strikethrough => style.strikethrough,
-        }
-    }
-    
-    fn boundary(&self, glyphs: &[LayoutGlyph], segments: &[(Text3dSegment, SegmentStyle)], index: usize) -> (f32, f32) {
-        let current = &glyphs[index];
-        let mut min = current.x;
-        let mut max = current.x + current.w;
-        if let Some(prev) = glyphs.get(index.wrapping_sub(1)) {
-            if prev.font_id == current.font_id && prev.font_size == current.font_size {
-                if let Some((_, style)) = segments.get(prev.metadata) {
-                    if self.validate(style) {
-                        min = (prev.x + prev.w + current.x) / 2.;
-                    }
-                }
-            } 
-        } 
-        if let Some(next) = glyphs.get(index.wrapping_add(1)) {
-            if next.font_id == current.font_id && next.font_size == current.font_size {
-                if let Some((_, style)) = segments.get(next.metadata) {
-                    if self.validate(style) {
-                        max = (current.x + current.w + next.x) / 2.;
-                    }
-                }
-            } 
-        }
-        (min, max)
-    }
-
-    fn get_line_rect(
-        &self, 
-        font_system: &mut FontSystem,
-        size: f32,
-        min: f32,
-        max: f32,
-        glyph: &LayoutGlyph
-    ) -> Option<Rect> {
-        font_system
-            .db()
-            .with_face_data(glyph.font_id, |file, _| {
-                let Ok(face) = Face::parse(file, 0) else {
-                    return None;
-                };
-                let metrics = match self {
-                    LineMode::Underscore => face.underline_metrics()?,
-                    LineMode::Strikethrough => face.strikeout_metrics()?,
-                };
-                let base = metrics.position as f32 / face.units_per_em() as f32 * size;
-                let height = metrics.thickness as f32 / face.units_per_em() as f32 * size;
-                Some(Rect { min: Vec2::new(min, base), max: Vec2::new(max, base + height) })
-            })
-            .flatten()
-    }
-}
-
 fn get_atlas_rect(
     font_system: &mut FontSystem,
     scale_factor: f32,
@@ -472,7 +473,7 @@ fn get_atlas_rect(
         .glyphs
         .get(&GlyphEntry {
             font: glyph.font_id,
-            glyph_id: glyph.glyph_id,
+            glyph_id: glyph.glyph_id.into(),
             size: FloatOrd(glyph.font_size),
             weight: styling.weight,
             join: styling.stroke_join,
@@ -499,6 +500,7 @@ fn get_atlas_rect(
                     )
                 })
                 .flatten()
+                .map(|(rect, offset)| (rect, offset / scale_factor))
         })
 }
 
@@ -516,7 +518,7 @@ pub(crate) fn cache_glyph(
     let unit_per_em = face.units_per_em() as f32;
     let entry = GlyphEntry {
         font: glyph.font_id,
-        glyph_id: glyph.glyph_id,
+        glyph_id: glyph.glyph_id.into(),
         size: FloatOrd(glyph.font_size),
         weight: weight.into(),
         stroke,
@@ -524,71 +526,7 @@ pub(crate) fn cache_glyph(
     };
     tess_commands.commands.clear();
     face.outline_glyph(GlyphId(glyph.glyph_id), tess_commands)?;
-    let (alpha_map, bb) = if let Some(stroke) = stroke {
-        Mask::new(&tess_commands.commands)
-            .style(Style::Stroke(Stroke {
-                width: stroke.get() as f32 * unit_per_em / 100.,
-                start_cap: Cap::Round,
-                end_cap: Cap::Round,
-                join: stroke_join.into(),
-                ..Default::default()
-            }))
-            .transform(Some(Transform::scale(
-                glyph.font_size / unit_per_em * scale_factor,
-                glyph.font_size / unit_per_em * scale_factor,
-            )))
-            .format(Format::Alpha)
-            .render()
-    } else {
-        Mask::new(&tess_commands.commands)
-            .transform(Some(Transform::scale(
-                glyph.font_size / unit_per_em * scale_factor,
-                glyph.font_size / unit_per_em * scale_factor,
-            )))
-            .format(Format::Alpha)
-            .render()
-    };
-    let (w, h) = (bb.width as usize, bb.height as usize);
-    let base = Vec2::new(bb.left as f32, bb.top as f32) / scale_factor;
-    let pixel_rect = atlas.cache(image, entry, base, w, h, |buffer, pitch| {
-        for x in 0..w {
-            for y in 0..h {
-                buffer[y * pitch + x * 4 + 3] = alpha_map[y * w + x]
-            }
-        }
-        IVec2::new(w as i32, h as i32)
-    });
-    Some((pixel_rect, base))
-}
-
-#[derive(Debug, Default)]
-pub(crate) struct CommandEncoder {
-    commands: Vec<ZCommand>,
-}
-
-impl OutlineBuilder for CommandEncoder {
-    fn move_to(&mut self, x: f32, y: f32) {
-        self.commands.push(ZCommand::MoveTo(Vector::new(x, y)));
-    }
-
-    fn line_to(&mut self, x: f32, y: f32) {
-        self.commands.push(ZCommand::LineTo(Vector::new(x, y)));
-    }
-
-    fn quad_to(&mut self, x1: f32, y1: f32, x: f32, y: f32) {
-        self.commands
-            .push(ZCommand::QuadTo(Vector::new(x1, y1), Vector::new(x, y)));
-    }
-
-    fn curve_to(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32) {
-        self.commands.push(ZCommand::CurveTo(
-            Vector::new(x1, y1),
-            Vector::new(x2, y2),
-            Vector::new(x, y),
-        ));
-    }
-
-    fn close(&mut self) {
-        self.commands.push(ZCommand::Close);
-    }
+    let stroke = stroke.map(|x| x.get() as f32 * unit_per_em / 100.);
+    let scale = glyph.font_size / unit_per_em * scale_factor;
+    tess_commands.tess_glyph(stroke, scale, atlas, image, entry)
 }

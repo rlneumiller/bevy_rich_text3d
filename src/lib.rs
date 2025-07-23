@@ -6,6 +6,7 @@ mod atlas;
 mod change_detection;
 mod color_table;
 mod fetch;
+mod line;
 mod loading;
 mod mesh_util;
 mod misc;
@@ -13,6 +14,7 @@ mod parse;
 mod prepare;
 mod render;
 mod styling;
+mod tess;
 mod text3d;
 pub use prepare::{DrawStyle, FontSystemGuard, TextProgressReportCallback, TextRenderer};
 

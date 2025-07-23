@@ -215,7 +215,17 @@ fn parse_style(
     style: &str,
     mut stylesheet: impl FnMut(&str) -> Result<SegmentStyle, ParseError>,
 ) -> Result<SegmentStyle, ParseError> {
-    if style.starts_with("v-") {
+    if style == "_" {
+        Ok(SegmentStyle {
+            underscore: true,
+            ..Default::default()
+        })
+    } else if style == "~" {
+        Ok(SegmentStyle {
+            strikethrough: true,
+            ..Default::default()
+        })
+    } else if style.starts_with("v-") {
         if let Ok(magic_number) = f32::from_str(style.split_at(2).1) {
             Ok(SegmentStyle {
                 magic_number: Some(magic_number),
