@@ -1,10 +1,13 @@
 #![doc = include_str!("../README.md")]
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
+#![allow(clippy::collapsible_if)]
 mod atlas;
 mod change_detection;
 mod color_table;
 mod fetch;
+mod layers;
+mod line;
 mod loading;
 mod mesh_util;
 mod misc;
@@ -12,6 +15,7 @@ mod parse;
 mod prepare;
 mod render;
 mod styling;
+mod tess;
 mod text3d;
 pub use prepare::{DrawStyle, FontSystemGuard, TextProgressReportCallback, TextRenderer};
 

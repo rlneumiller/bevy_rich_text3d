@@ -29,6 +29,15 @@ impl Flip for Option<Style> {
     }
 }
 
+impl Flip for Option<bool> {
+    fn flip(&mut self) {
+        *self = match *self {
+            Some(false) | None => Some(true),
+            Some(true) => Some(false),
+        }
+    }
+}
+
 impl Text3d {
     /// Call [`Text3d::parse`] with no custom parsing functions.
     ///
@@ -75,6 +84,7 @@ impl Text3d {
     /// * `s-4` Sets stroke to a number.
     /// * `s-red` Parses color names as stroke color.
     /// * `v-4.0` Sets the `magic_number` field.
+    /// * `f-Roboto` Sets the font to Roboto.
     ///
     /// ## Dynamic value
     ///
@@ -92,6 +102,9 @@ impl Text3d {
     /// A subset of markdown features are supported:
     /// * `*emphasis*`
     /// * `**strong**`
+    /// * `__underline__`
+    /// * `~~strikethrough~~`
+    /// * `\*` escape character
     ///
     /// ## Inputs
     ///
@@ -185,7 +198,27 @@ impl Text3d {
                         _ => style!(mut).style.flip(),
                     }
                 }
+                ('_', Text) if iter.peek() == Some(&'_') => {
+                    push_segment(&buffer, &mut segments, &mut styles)?;
+                    buffer.clear();
+                    iter.next();
+                    style!(mut).underline.flip()
+                }
+                ('~', Text) if iter.peek() == Some(&'~') => {
+                    push_segment(&buffer, &mut segments, &mut styles)?;
+                    buffer.clear();
+                    iter.next();
+                    style!(mut).strikethrough.flip()
+                }
                 (c, Command | Image) => buffer.push(c),
+                ('\\', Text) => {
+                    if let Some(c) = iter.peek() {
+                        buffer.push(*c);
+                        iter.next();
+                    } else {
+                        buffer.push('\\');
+                    }
+                }
                 (c, Text) if c.is_whitespace() => {
                     let mut linebreaks = if c == '\n' { 1 } else { 0 };
                     while let Some(c) = iter.peek() {
@@ -215,8 +248,8 @@ fn parse_style(
     style: &str,
     mut stylesheet: impl FnMut(&str) -> Result<SegmentStyle, ParseError>,
 ) -> Result<SegmentStyle, ParseError> {
-    if style.starts_with("v-") {
-        if let Ok(magic_number) = f32::from_str(style.split_at(2).1) {
+    if let Some(number) = style.strip_prefix("v-") {
+        if let Ok(magic_number) = f32::from_str(number) {
             Ok(SegmentStyle {
                 magic_number: Some(magic_number),
                 ..Default::default()
@@ -224,13 +257,13 @@ fn parse_style(
         } else {
             stylesheet(style)
         }
-    } else if style.starts_with("s-") {
-        if let Ok(int) = u32::from_str(style.split_at(2).1) {
+    } else if let Some(name) = style.strip_prefix("s-") {
+        if let Ok(int) = u32::from_str(name) {
             Ok(SegmentStyle {
                 stroke: NonZeroU32::new(int),
                 ..Default::default()
             })
-        } else if let Some(color) = parse_color(style.split_at(2).1) {
+        } else if let Some(color) = parse_color(name) {
             Ok(SegmentStyle {
                 stroke_color: Some(color),
                 ..Default::default()
@@ -238,13 +271,36 @@ fn parse_style(
         } else {
             stylesheet(style)
         }
+    } else if let Some(name) = style.strip_prefix("f-") {
+        Ok(SegmentStyle {
+            font: Some(name.into()),
+            ..Default::default()
+        })
     } else if let Some(color) = parse_color(style) {
         Ok(SegmentStyle {
             fill_color: Some(color),
             ..Default::default()
         })
     } else {
-        stylesheet(style)
+        match style {
+            "bold" => Ok(SegmentStyle {
+                weight: Some(Weight::BOLD),
+                ..Default::default()
+            }),
+            "italic" => Ok(SegmentStyle {
+                style: Some(Style::Italic),
+                ..Default::default()
+            }),
+            "underline" => Ok(SegmentStyle {
+                underline: Some(true),
+                ..Default::default()
+            }),
+            "strikethrough" => Ok(SegmentStyle {
+                strikethrough: Some(true),
+                ..Default::default()
+            }),
+            _ => stylesheet(style),
+        }
     }
 }
 

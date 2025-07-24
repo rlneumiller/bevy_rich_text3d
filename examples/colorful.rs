@@ -45,7 +45,7 @@ fn setup(mut commands: Commands, mut standard_materials: ResMut<Assets<StandardM
         ..Default::default()
     });
     let text = Text3d::parse(
-            "{s-20, s-black:<Time Bomb>}: Deals {orange:**explosion**} damage equal to {red:*fps*}, which is {s-20, s-black, red:{fps}}!", 
+            "{s-20, s-black:<Time Bomb>}: Deals {orange:**explosion**} damage equal to {red:*fps*}, which is {s-20, s-black, red:{fps}}! __BOOM!__", 
             |s| {
                 if s == "fps" {
                     Ok(Text3dSegment::Extract(

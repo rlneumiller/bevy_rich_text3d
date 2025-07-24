@@ -5,7 +5,7 @@ use bevy::{
     render::mesh::{Indices, Mesh, VertexAttributeValues},
 };
 
-use crate::{GlyphMeta, Text3dStyling};
+use crate::{layers::Layer, GlyphMeta, Text3dStyling};
 
 // Take the allocation if possible but clear the data.
 macro_rules! recycle_mesh {
@@ -45,10 +45,17 @@ pub(crate) struct ExtractedMesh<'t> {
     pub uv1: Vec<[f32; 2]>,
     pub colors: Vec<[f32; 4]>,
     pub indices: Vec<u16>,
+    pub sort: &'t mut Vec<(Layer, [u16; 6])>,
+    pub layer_offset: f32,
 }
 
 impl<'t> ExtractedMesh<'t> {
-    pub fn new(mesh: &'t mut Mesh) -> Self {
+    pub fn new(
+        mesh: &'t mut Mesh,
+        sort_buffer: &'t mut Vec<(Layer, [u16; 6])>,
+        layer_offset: f32,
+    ) -> Self {
+        sort_buffer.clear();
         let positions = recycle_mesh!(mesh, ATTRIBUTE_POSITION, Float32x3);
         let normals = recycle_mesh!(mesh, ATTRIBUTE_NORMAL, Float32x3);
         let uv0 = recycle_mesh!(mesh, ATTRIBUTE_UV_0, Float32x2);
@@ -68,6 +75,8 @@ impl<'t> ExtractedMesh<'t> {
             uv1,
             colors,
             indices,
+            sort: sort_buffer,
+            layer_offset,
         }
     }
 
@@ -114,21 +123,44 @@ impl<'t> ExtractedMesh<'t> {
         texture: Rect,
         color: Srgba,
         scale_factor: f32,
-        z: f32,
+        layer: Layer,
+        real_index: usize,
+        advance: f32,
+        magic_number: f32,
+        styling: &Text3dStyling,
+    ) {
+        let mesh_rect = Rect {
+            min: base,
+            max: base + texture.size() / scale_factor,
+        };
+        self.cache_rectangle2(
+            mesh_rect,
+            texture,
+            color,
+            layer,
+            real_index,
+            advance,
+            magic_number,
+            styling,
+        );
+    }
+
+    pub fn cache_rectangle2(
+        &mut self,
+        mesh_rect: Rect,
+        texture: Rect,
+        color: Srgba,
+        layer: Layer,
         real_index: usize,
         advance: f32,
         magic_number: f32,
         styling: &Text3dStyling,
     ) {
         let i = self.positions.len() as u16;
-        self.indices.extend([i, i + 1, i + 2, i + 1, i + 3, i + 2]);
+        self.sort
+            .push((layer, [i, i + 1, i + 2, i + 1, i + 3, i + 2]));
 
-        let mesh_rect = Rect {
-            min: base,
-            max: base + texture.size() / scale_factor,
-        };
-
-        self.positions.extend(corners_z(mesh_rect, z));
+        self.positions.extend(corners_z(mesh_rect, 0.));
         self.normals.extend([[0., 0., 1.]; 4]);
         self.colors
             .extend([LinearRgba::from(color).to_f32_array(); 4]);
@@ -178,6 +210,24 @@ impl<'t> ExtractedMesh<'t> {
 impl Drop for ExtractedMesh<'_> {
     fn drop(&mut self) {
         use std::mem::take;
+        self.sort.sort_by_key(|x| x.0);
+        if self.layer_offset != 0.0 {
+            let mut offset = 0.0;
+            let mut layer = self.sort.last().map(|x| x.0).unwrap_or(Layer::None);
+            for (l, entry) in self.sort.iter().rev() {
+                if layer != *l {
+                    offset -= self.layer_offset;
+                    layer = *l;
+                }
+                for idx in entry {
+                    if let Some([_, _, z]) = self.positions.get_mut(*idx as usize) {
+                        *z = offset;
+                    }
+                }
+            }
+        }
+        self.indices
+            .extend(self.sort.drain(..).flat_map(|(_, v)| v));
         if !self.positions.is_empty() {
             self.mesh
                 .insert_attribute(Mesh::ATTRIBUTE_POSITION, take(&mut self.positions));

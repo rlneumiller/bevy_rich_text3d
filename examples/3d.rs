@@ -4,7 +4,10 @@ use bevy::{
     app::{App, Startup},
     asset::Assets,
     color::{Color, Srgba},
-    core_pipeline::core_3d::Camera3d,
+    core_pipeline::{
+        core_3d::Camera3d,
+        smaa::{Smaa, SmaaPreset},
+    },
     math::{Quat, Vec2, Vec3},
     pbr::{AmbientLight, DirectionalLight, MeshMaterial3d, StandardMaterial},
     prelude::{Commands, Mesh, Plane3d, Projection, ResMut, Transform},
@@ -40,7 +43,7 @@ fn setup(
 ) {
     let mat = standard_materials.add(StandardMaterial {
         base_color_texture: Some(TextAtlas::DEFAULT_IMAGE.clone_weak()),
-        alpha_mode: AlphaMode::Blend,
+        alpha_mode: AlphaMode::Mask(0.5),
         unlit: true,
         cull_mode: None,
         ..Default::default()
@@ -54,7 +57,7 @@ fn setup(
             color: Srgba::new(1., 0., 0., 1.),
             stroke_color: Srgba::BLACK,
             world_scale: Some(Vec2::splat(0.25)),
-            stroke_offset: -0.01,
+            layer_offset: 0.001,
             ..Default::default()
         },
         Mesh3d::default(),
@@ -74,7 +77,7 @@ fn setup(
             color: Srgba::new(0., 0.4, 1., 1.),
             stroke_color: Srgba::BLACK,
             world_scale: Some(Vec2::splat(0.25)),
-            stroke_offset: -0.01,
+            layer_offset: 0.001,
             ..Default::default()
         },
         Mesh3d::default(),
@@ -82,6 +85,26 @@ fn setup(
         Transform {
             translation: Vec3::new(4., 1., 1.),
             rotation: Quat::from_axis_angle(Vec3::Y, 0.),
+            scale: Vec3::ONE,
+        },
+    ));
+
+    commands.spawn((
+        Text3d::parse_raw("~~__a lot of layers__~~").unwrap(),
+        Text3dStyling {
+            size: 64.,
+            stroke: NonZero::new(10),
+            color: Srgba::new(1., 0.0, 1., 1.),
+            stroke_color: Srgba::BLACK,
+            world_scale: Some(Vec2::splat(0.5)),
+            layer_offset: 0.1,
+            ..Default::default()
+        },
+        Mesh3d::default(),
+        MeshMaterial3d(mat.clone()),
+        Transform {
+            translation: Vec3::new(1., 1., 1.),
+            rotation: Quat::from_axis_angle(Vec3::Y, f32::to_radians(45.)),
             scale: Vec3::ONE,
         },
     ));
@@ -112,5 +135,8 @@ fn setup(
         }),
         Transform::from_translation(Vec3::new(6., 4., 6.))
             .looking_at(Vec3::new(0., 0., 0.), Vec3::Y),
+        Smaa {
+            preset: SmaaPreset::Medium,
+        },
     ));
 }

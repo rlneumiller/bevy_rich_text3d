@@ -48,23 +48,19 @@ pub struct Text3dStyling {
     ///
     /// Ths is cached per unique value so be sure not to use too many of them.
     pub stroke: Option<NonZeroU32>,
-    /// The distance between `fill` and `stroke`,
-    /// If positive, render stroke in front, if negative, render fill in front.
-    /// Only has effect if rendering both fill and stroke.
-    ///
-    /// The one in front always has transform z `0.0`, the one in the back will have negative z.
-    ///
-    /// By default this is `-0.5`.
-    pub stroke_offset: f32,
+    /// If true, render stroke in front.
+    pub stroke_in_front: bool,
     /// The shape of the stroke line joins, usually [`StrokeJoin::Round`].
     pub stroke_join: StrokeJoin,
-
+    /// Sets the distance between different layers, i.e. stroke and fill.
+    ///
+    /// `0.0` likely works for transparent render modes and opaque2d, but
+    /// not for opaque3d.
+    pub layer_offset: f32,
     /// Determines what to extract as uv1.
     pub uv1: (GlyphMeta, GlyphMeta),
-
     /// Tab in terms of spaces, default 4.
     pub tab_width: u16,
-
     /// If set, overwrite the size of `em` in the generated mesh.
     ///
     /// By default the mesh size is relative to [`Text3dStyling::size`], which is equivalent to `Some((size, size))`.
@@ -88,7 +84,8 @@ impl Default for Text3dStyling {
             fill: true,
             stroke: Default::default(),
             line_height: 1.0,
-            stroke_offset: -0.01,
+            layer_offset: 0.01,
+            stroke_in_front: false,
             stroke_join: StrokeJoin::Round,
             uv1: (GlyphMeta::Index, GlyphMeta::PerGlyphAdvance),
             tab_width: 4,
@@ -109,6 +106,8 @@ pub struct SegmentStyle {
     pub stroke: Option<NonZeroU32>,
     pub weight: Option<Weight>,
     pub style: Option<Style>,
+    pub underline: Option<bool>,
+    pub strikethrough: Option<bool>,
     /// Can be referenced by [`GlyphMeta::MagicNumber`].
     pub magic_number: Option<f32>,
 }
@@ -131,6 +130,8 @@ impl SegmentStyle {
             fill: other.fill.or(self.fill),
             stroke: other.stroke.or(self.stroke),
             weight: other.weight.or(self.weight),
+            underline: other.underline.or(self.underline),
+            strikethrough: other.strikethrough.or(self.strikethrough),
             style: other.style.or(self.style),
             magic_number: other.magic_number.or(self.magic_number),
         }
@@ -140,10 +141,22 @@ impl SegmentStyle {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct GlyphEntry {
     pub font: ID,
-    pub glyph_id: u16,
+    pub glyph_id: GlyphTextureOf,
     pub join: StrokeJoin,
     pub size: FloatOrd,
     pub weight: Weight,
-    /// If is none, render in fill mode.
     pub stroke: Option<NonZeroU32>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum GlyphTextureOf {
+    Id(u16),
+    UnderlineTexture,
+    StrikethroughTexture,
+}
+
+impl From<u16> for GlyphTextureOf {
+    fn from(id: u16) -> Self {
+        GlyphTextureOf::Id(id)
+    }
 }

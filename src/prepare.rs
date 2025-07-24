@@ -14,10 +14,7 @@ use cosmic_text::{
     ttf_parser::Face, Attrs, Buffer, Family, FontSystem, Metrics, Shaping, Style, Weight,
 };
 
-use crate::{
-    render::{cache_glyph, CommandEncoder},
-    StrokeJoin, Text3dPlugin, TextAtlas,
-};
+use crate::{render::cache_glyph, tess::CommandEncoder, StrokeJoin, Text3dPlugin, TextAtlas};
 
 /// An [`Arc<Mutex>`] around [`cosmic_text::FontSystem`],
 /// rendering fonts require exclusive access.
