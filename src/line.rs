@@ -1,4 +1,4 @@
-use std::num::{NonZero, NonZeroU32};
+use std::num::NonZero;
 
 use bevy::{
     image::Image,
@@ -24,7 +24,7 @@ pub(crate) struct LineRun {
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum LineMode {
-    Underscore,
+    Underline,
     Strikethrough,
 }
 
@@ -75,7 +75,7 @@ pub enum UvRanges {
 }
 
 impl UvRanges {
-    pub fn iter(&self) -> impl Iterator<Item = ((f32, f32), (f32, f32))> + use <'_>{
+    pub fn iter(&self) -> impl Iterator<Item = ((f32, f32), (f32, f32))> + use<'_> {
         match self {
             UvRanges::One(v) => std::array::from_ref(v).iter().copied(),
             UvRanges::Two(v) => v.iter().copied(),
@@ -83,20 +83,19 @@ impl UvRanges {
     }
 }
 
-
 impl From<LineMode> for GlyphTextureOf {
     fn from(value: LineMode) -> Self {
         match value {
-            LineMode::Underscore => GlyphTextureOf::UnderscoreTexture,
+            LineMode::Underline => GlyphTextureOf::UnderlineTexture,
             LineMode::Strikethrough => GlyphTextureOf::StrikethroughTexture,
         }
     }
 }
 
 impl LineMode {
-    pub fn select<T>(&self, underscore: T, strikethrough: T) -> T {
+    pub fn select<T>(&self, underline: T, strikethrough: T) -> T {
         match self {
-            LineMode::Underscore => underscore,
+            LineMode::Underline => underline,
             LineMode::Strikethrough => strikethrough,
         }
     }
@@ -139,7 +138,7 @@ impl LineMode {
 
     pub fn validate(&self, style: &SegmentStyle) -> bool {
         match self {
-            LineMode::Underscore => style.underscore.unwrap_or_default(),
+            LineMode::Underline => style.underline.unwrap_or_default(),
             LineMode::Strikethrough => style.strikethrough.unwrap_or_default(),
         }
     }
@@ -149,10 +148,9 @@ impl LineMode {
         glyphs: &[LayoutGlyph],
         segments: &[(Text3dSegment, SegmentStyle)],
         index: usize,
-        stroke: Option<NonZeroU32>,
+        stroke: f32,
     ) -> (f32, f32) {
         let current = &glyphs[index];
-        let stroke = stroke.map(|x| x.get()).unwrap_or(0) as f32 * current.font_size / 200.0;
         let mut min = current.x - stroke;
         let mut max = current.x + current.w + stroke;
         if let Some(prev) = glyphs.get(index.wrapping_sub(1)) {
@@ -176,12 +174,7 @@ impl LineMode {
         (min, max)
     }
 
-    pub fn size(
-        &self,
-        font_system: &mut FontSystem,
-        id: ID,
-        size: f32,
-    ) -> f32 {
+    pub fn size(&self, font_system: &mut FontSystem, id: ID, size: f32) -> f32 {
         font_system
             .db()
             .with_face_data(id, |file, _| {
@@ -189,11 +182,13 @@ impl LineMode {
                     return None;
                 };
                 let metrics = match self {
-                    LineMode::Underscore => face.underline_metrics()?,
+                    LineMode::Underline => face.underline_metrics()?,
                     LineMode::Strikethrough => face.underline_metrics()?,
                 };
                 Some(metrics.thickness as f32 / face.units_per_em() as f32 * size)
-            }).flatten().unwrap_or(size)
+            })
+            .flatten()
+            .unwrap_or(size)
     }
 
     pub fn get_line_rect(
@@ -202,10 +197,9 @@ impl LineMode {
         size: f32,
         min: f32,
         max: f32,
-        stroke: Option<NonZeroU32>,
+        stroke: f32,
         glyph: &LayoutGlyph,
     ) -> Option<Rect> {
-        let stroke = stroke.map(|x| x.get()).unwrap_or(0) as f32 * size / 200.;
         font_system
             .db()
             .with_face_data(glyph.font_id, |file, _| {
@@ -213,7 +207,7 @@ impl LineMode {
                     return None;
                 };
                 let metrics = match self {
-                    LineMode::Underscore => face.underline_metrics()?,
+                    LineMode::Underline => face.underline_metrics()?,
                     LineMode::Strikethrough => face.strikeout_metrics()?,
                 };
                 let base = metrics.position as f32 / face.units_per_em() as f32 * size;
@@ -285,7 +279,7 @@ impl LineMode {
         face: Face,
     ) -> Option<Rect> {
         let metrics = match self {
-            LineMode::Underscore => face.underline_metrics(),
+            LineMode::Underline => face.underline_metrics(),
             LineMode::Strikethrough => face.strikeout_metrics(),
         }?;
         let unit_per_em = face.units_per_em() as f32;

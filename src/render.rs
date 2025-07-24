@@ -1,6 +1,5 @@
 use bevy::{
     asset::{AssetId, Assets, RenderAssetUsages},
-    color::Srgba,
     ecs::{
         change_detection::DetectChanges,
         system::{Local, Query, Res, ResMut},
@@ -18,7 +17,8 @@ use std::num::NonZero;
 
 use crate::{
     fetch::FetchedTextSegment,
-    line::{LineMode, LineRun},
+    layers::{DrawRequest, DrawType, Layer},
+    line::LineRun,
     mesh_util::ExtractedMesh,
     styling::GlyphEntry,
     tess::CommandEncoder,
@@ -59,133 +59,6 @@ fn get_mesh<'t>(
     meshes.get_mut(id)
 }
 
-enum DrawType {
-    Fill,
-    Stroke(NonZero<u32>),
-    FillLine(LineMode),
-    StrokeLine(NonZero<u32>, LineMode),
-}
-
-impl DrawType {
-    fn stroke(&self) -> Option<NonZero<u32>> {
-        match self {
-            DrawType::Fill => None,
-            DrawType::Stroke(v) => Some(*v),
-            DrawType::FillLine(_) => None,
-            DrawType::StrokeLine(v, _) => Some(*v),
-        }
-    }
-}
-
-pub struct DrawRequest {
-    request: DrawType,
-    color: Srgba,
-    offset: Vec2,
-    z: f32,
-}
-
-const FILLED_RECT: Rect = Rect {
-    min: Vec2::ZERO,
-    max: Vec2::ZERO,
-};
-
-impl Text3dStyling {
-    /// Note: Things drawn last gets rendered first.
-    pub(crate) fn fill_draw_requests(&self, attrs: &SegmentStyle, requests: &mut Vec<DrawRequest>) {
-        requests.clear();
-        macro_rules! fill {
-            () => {
-                if attrs.fill.unwrap_or(self.fill) {
-                    let color = attrs.fill_color.unwrap_or(self.color);
-                    if let Some((color, offset)) = self.text_shadow {
-                        requests.push(DrawRequest {
-                            request: DrawType::Fill,
-                            color,
-                            offset,
-                            z: 0.,
-                        });
-                    }
-                    requests.push(DrawRequest {
-                        request: DrawType::Fill,
-                        color,
-                        offset: Vec2::ZERO,
-                        z: 0.,
-                    });
-                    if attrs.underscore.is_some_and(|x| x) {
-                        requests.push(DrawRequest {
-                            request: DrawType::FillLine(LineMode::Underscore),
-                            color,
-                            offset: Vec2::ZERO,
-                            z: 0.,
-                        });
-                    }
-                    if attrs.strikethrough.is_some_and(|x| x) {
-                        requests.push(DrawRequest {
-                            request: DrawType::FillLine(LineMode::Strikethrough),
-                            color,
-                            offset: Vec2::ZERO,
-                            z: 0.,
-                        });
-                    }
-                }
-            };
-        }
-        macro_rules! stroke {
-            () => {
-                if let Some(stroke) = attrs.stroke.or(self.stroke) {
-                    let color = attrs.stroke_color.unwrap_or(self.stroke_color);
-                    if let Some((color, offset)) = self.text_shadow {
-                        requests.push(DrawRequest {
-                            request: DrawType::Stroke(stroke),
-                            color,
-                            offset,
-                            z: 0.,
-                        });
-                    }
-                    requests.push(DrawRequest {
-                        request: DrawType::Stroke(stroke),
-                        color,
-                        offset: Vec2::ZERO,
-                        z: 0.,
-                    });
-
-                    if attrs.underscore.is_some_and(|x| x) {
-                        requests.push(DrawRequest {
-                            request: DrawType::StrokeLine(stroke, LineMode::Underscore),
-                            color,
-                            offset: Vec2::ZERO,
-                            z: 0.,
-                        });
-                    }
-
-                    if attrs.strikethrough.is_some_and(|x| x) {
-                        requests.push(DrawRequest {
-                            request: DrawType::StrokeLine(stroke, LineMode::Strikethrough),
-                            color,
-                            offset: Vec2::ZERO,
-                            z: 0.,
-                        });
-                    }
-                }
-            };
-        }
-        if self.stroke_offset > 0. {
-            fill!();
-            stroke!();
-        } else {
-            stroke!();
-            fill!();
-        }
-        let offset = -self.stroke_offset.abs();
-        let mut z = 0.;
-
-        for item in requests.iter_mut().rev() {
-            item.z = z;
-            z += offset;
-        }
-    }
-}
-
 pub fn text_render(
     settings: Res<Text3dPlugin>,
     font_system: ResMut<TextRenderer>,
@@ -203,6 +76,7 @@ pub fn text_render(
     )>,
     segments: Query<Ref<FetchedTextSegment>>,
     mut draw_requests: Local<Vec<DrawRequest>>,
+    mut sort_buffer: Local<Vec<(Layer, [u16; 6])>>,
 ) {
     let Ok(mut lock) = font_system.0.try_lock() else {
         return;
@@ -314,7 +188,7 @@ pub fn text_render(
             continue;
         };
 
-        let mut mesh = ExtractedMesh::new(mesh);
+        let mut mesh = ExtractedMesh::new(mesh, &mut sort_buffer);
 
         let mut width = 0.0f32;
         let mut advance = 0.0f32;
@@ -329,7 +203,7 @@ pub fn text_render(
         for run in buffer.layout_runs() {
             width = width.max(run.line_w);
             height = height.max(run.line_top + run.line_height);
-            let mut underscore_run = LineRun::default();
+            let mut underline_run = LineRun::default();
             let mut strikethrough_run = LineRun::default();
             for glyph_index in 0..run.glyphs.len() {
                 let glyph = &run.glyphs[glyph_index];
@@ -346,12 +220,11 @@ pub fn text_render(
                     request,
                     color,
                     offset,
-                    z,
+                    sort: layer,
                 } in draw_requests.drain(..)
                 {
                     match request {
-                        DrawType::Fill | DrawType::Stroke(_) => {
-                            let stroke = request.stroke();
+                        DrawType::Glyph(stroke) => {
                             let Some((pixel_rect, base)) = get_atlas_rect(
                                 font_system,
                                 scale_factor,
@@ -371,23 +244,25 @@ pub fn text_render(
                             min_x = min_x.min(dw + dx);
                             max_x = max_x.max(dw + dx + glyph.w);
 
-                            let base =
-                                Vec2::new(glyph.x, glyph.y) + base + offset + Vec2::new(dx, -run.line_y);
+                            let base = Vec2::new(glyph.x, glyph.y)
+                                + base
+                                + offset
+                                + Vec2::new(dx, -run.line_y);
 
                             mesh.cache_rectangle(
                                 base,
                                 pixel_rect,
                                 color,
                                 scale_factor,
-                                z,
+                                layer,
                                 real_index,
                                 advance + dw,
                                 magic_number,
                                 &styling,
                             );
-                        },
-                        DrawType::FillLine(mode) | DrawType::StrokeLine(_, mode) => {
-                            let line = mode.select(&mut underscore_run, &mut strikethrough_run);
+                        }
+                        DrawType::Line(stroke, mode) => {
+                            let line = mode.select(&mut underline_run, &mut strikethrough_run);
                             if !line.contains(glyph) {
                                 *line = mode.new_run(
                                     mode.size(font_system, glyph.font_id, glyph.font_size),
@@ -396,7 +271,9 @@ pub fn text_render(
                                     &text.segments,
                                 );
                             }
-                            let stroke = request.stroke().map(|x| x.get()).unwrap_or(0) as f32 * glyph.font_size / 200.;
+                            let stroke_size = stroke.map(|x| x.get()).unwrap_or(0) as f32
+                                * glyph.font_size
+                                / 200.;
                             let Some(uv_rect) = mode.get_atlas_rect(
                                 font_system,
                                 glyph.font_id,
@@ -406,23 +283,21 @@ pub fn text_render(
                                 &mut tess_commands,
                                 attrs,
                                 &styling,
-                                request.stroke(),
+                                stroke,
                             ) else {
                                 continue;
                             };
-                            let (min, max) = mode.boundary(
-                                run.glyphs,
-                                &text.segments,
-                                glyph_index,
-                                request.stroke(),
-                            );
-                            for ((min, uv_min), (max, uv_max)) in line.uv_range(min, max, stroke).iter() {
+                            let (min, max) =
+                                mode.boundary(run.glyphs, &text.segments, glyph_index, stroke_size);
+                            for ((min, uv_min), (max, uv_max)) in
+                                line.uv_range(min, max, stroke_size).iter()
+                            {
                                 let Some(rect) = mode.get_line_rect(
                                     font_system,
                                     styling.size,
                                     min,
                                     max,
-                                    request.stroke(),
+                                    stroke_size,
                                     glyph,
                                 ) else {
                                     continue;
@@ -445,14 +320,13 @@ pub fn text_render(
                                     rect,
                                     result_rect,
                                     color,
-                                    z,
+                                    layer,
                                     real_index,
                                     advance + min,
                                     magic_number,
                                     &styling,
                                 );
                             }
-                            
                         }
                     };
                 }
@@ -474,7 +348,7 @@ pub fn text_render(
         mesh.post_process_uv1(&styling, bb_min, dimension);
 
         if let Some(world_scale) = styling.world_scale {
-            mesh.translate(|v| *v = (*v * offset) * world_scale / styling.size);
+            mesh.translate(|v| *v = (*v + offset) * world_scale / styling.size);
         } else {
             mesh.translate(|v| *v += offset);
         }
@@ -528,7 +402,6 @@ fn get_atlas_rect(
                     )
                 })
                 .flatten()
-                
         })
         .map(|(rect, offset)| (rect, offset / scale_factor))
 }

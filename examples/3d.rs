@@ -40,7 +40,7 @@ fn setup(
 ) {
     let mat = standard_materials.add(StandardMaterial {
         base_color_texture: Some(TextAtlas::DEFAULT_IMAGE.clone_weak()),
-        alpha_mode: AlphaMode::Blend,
+        alpha_mode: AlphaMode::Mask(0.5),
         unlit: true,
         cull_mode: None,
         ..Default::default()
@@ -54,7 +54,6 @@ fn setup(
             color: Srgba::new(1., 0., 0., 1.),
             stroke_color: Srgba::BLACK,
             world_scale: Some(Vec2::splat(0.25)),
-            stroke_offset: -0.01,
             ..Default::default()
         },
         Mesh3d::default(),
@@ -74,7 +73,6 @@ fn setup(
             color: Srgba::new(0., 0.4, 1., 1.),
             stroke_color: Srgba::BLACK,
             world_scale: Some(Vec2::splat(0.25)),
-            stroke_offset: -0.01,
             ..Default::default()
         },
         Mesh3d::default(),
@@ -86,12 +84,12 @@ fn setup(
         },
     ));
 
-    // ground plane
-    commands.spawn((
-        Mesh3d(meshes.add(Plane3d::default().mesh().size(50.0, 50.0).subdivisions(10))),
-        MeshMaterial3d(standard_materials.add(StandardMaterial::from_color(Srgba::GREEN))),
-        Transform::from_xyz(0., 0., 0.),
-    ));
+    // // ground plane
+    // commands.spawn((
+    //     Mesh3d(meshes.add(Plane3d::default().mesh().size(50.0, 50.0).subdivisions(10))),
+    //     MeshMaterial3d(standard_materials.add(StandardMaterial::from_color(Srgba::GREEN))),
+    //     Transform::from_xyz(0., 0., 0.),
+    // ));
 
     commands.spawn((
         DirectionalLight {

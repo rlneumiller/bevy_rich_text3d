@@ -6,6 +6,7 @@ mod atlas;
 mod change_detection;
 mod color_table;
 mod fetch;
+mod layers;
 mod line;
 mod loading;
 mod mesh_util;
