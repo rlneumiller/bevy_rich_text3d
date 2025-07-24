@@ -102,8 +102,8 @@ impl Text3dStyling {
                 if attrs.strikethrough.is_some_and(|x| x) {
                     requests.push(DrawRequest {
                         request: DrawType::Line(stroke, LineMode::Strikethrough),
-                        color,
-                        offset: Vec2::ZERO,
+                        color: shadow_color.unwrap_or(color),
+                        offset,
                         sort: regular_layer | shadow_layer | Layer::Strikethrough,
                     });
                 }

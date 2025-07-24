@@ -173,6 +173,22 @@ fn setup(mut commands: Commands, mut standard_materials: ResMut<Assets<ColorMate
     ));
 
     commands.spawn((
+        ChildOf(layout),
+        Transform2D::default(),
+        Text3d::parse_raw("~~__Maybe a bit of everything?__~~").unwrap(),
+        Text3dStyling {
+            size: 64.,
+            stroke: NonZero::new(10),
+            color: Srgba::new(0., 1., 1., 1.),
+            stroke_color: Srgba::BLACK,
+            text_shadow: Some((Srgba::BLACK, Vec2::new(4., 4.))),
+            ..Default::default()
+        },
+        Mesh2d::default(),
+        MeshMaterial2d(mat.clone()),
+    ));
+
+    commands.spawn((
         Camera2d,
         Projection::Orthographic(OrthographicProjection::default_3d()),
         Transform::from_translation(Vec3::new(0., 0., 1.))
