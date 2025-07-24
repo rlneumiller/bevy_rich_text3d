@@ -40,15 +40,6 @@ pub enum DrawType {
     Line(Option<NonZero<u32>>, LineMode),
 }
 
-impl DrawType {
-    fn stroke(&self) -> Option<NonZero<u32>> {
-        match self {
-            DrawType::Glyph(v) => *v,
-            DrawType::Line(v, _) => *v,
-        }
-    }
-}
-
 pub struct DrawRequest {
     pub sort: Layer,
     pub request: DrawType,
