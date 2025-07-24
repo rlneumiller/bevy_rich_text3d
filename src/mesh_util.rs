@@ -46,10 +46,15 @@ pub(crate) struct ExtractedMesh<'t> {
     pub colors: Vec<[f32; 4]>,
     pub indices: Vec<u16>,
     pub sort: &'t mut Vec<(Layer, [u16; 6])>,
+    pub layer_offset: f32,
 }
 
 impl<'t> ExtractedMesh<'t> {
-    pub fn new(mesh: &'t mut Mesh, sort_buffer: &'t mut Vec<(Layer, [u16; 6])>) -> Self {
+    pub fn new(
+        mesh: &'t mut Mesh,
+        sort_buffer: &'t mut Vec<(Layer, [u16; 6])>,
+        layer_offset: f32,
+    ) -> Self {
         sort_buffer.clear();
         let positions = recycle_mesh!(mesh, ATTRIBUTE_POSITION, Float32x3);
         let normals = recycle_mesh!(mesh, ATTRIBUTE_NORMAL, Float32x3);
@@ -71,6 +76,7 @@ impl<'t> ExtractedMesh<'t> {
             colors,
             indices,
             sort: sort_buffer,
+            layer_offset,
         }
     }
 
@@ -205,6 +211,21 @@ impl Drop for ExtractedMesh<'_> {
     fn drop(&mut self) {
         use std::mem::take;
         self.sort.sort_by_key(|x| x.0);
+        if self.layer_offset != 0.0 {
+            let mut offset = 0.0;
+            let mut layer = self.sort.last().map(|x| x.0).unwrap_or(Layer::None);
+            for (l, entry) in self.sort.iter().rev() {
+                if layer != *l {
+                    offset -= self.layer_offset;
+                    layer = *l;
+                }
+                for idx in entry {
+                    if let Some([_, _, z]) = self.positions.get_mut(*idx as usize) {
+                        *z = offset;
+                    }
+                }
+            }
+        }
         self.indices
             .extend(self.sort.drain(..).flat_map(|(_, v)| v));
         if !self.positions.is_empty() {

@@ -188,7 +188,7 @@ pub fn text_render(
             continue;
         };
 
-        let mut mesh = ExtractedMesh::new(mesh, &mut sort_buffer);
+        let mut mesh = ExtractedMesh::new(mesh, &mut sort_buffer, styling.layer_offset);
 
         let mut width = 0.0f32;
         let mut advance = 0.0f32;

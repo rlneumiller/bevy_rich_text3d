@@ -4,7 +4,10 @@ use bevy::{
     app::{App, Startup},
     asset::Assets,
     color::{Color, Srgba},
-    core_pipeline::core_3d::Camera3d,
+    core_pipeline::{
+        core_3d::Camera3d,
+        smaa::{Smaa, SmaaPreset},
+    },
     math::{Quat, Vec2, Vec3},
     pbr::{AmbientLight, DirectionalLight, MeshMaterial3d, StandardMaterial},
     prelude::{Commands, Mesh, Plane3d, Projection, ResMut, Transform},
@@ -54,6 +57,7 @@ fn setup(
             color: Srgba::new(1., 0., 0., 1.),
             stroke_color: Srgba::BLACK,
             world_scale: Some(Vec2::splat(0.25)),
+            layer_offset: 0.001,
             ..Default::default()
         },
         Mesh3d::default(),
@@ -73,6 +77,7 @@ fn setup(
             color: Srgba::new(0., 0.4, 1., 1.),
             stroke_color: Srgba::BLACK,
             world_scale: Some(Vec2::splat(0.25)),
+            layer_offset: 0.001,
             ..Default::default()
         },
         Mesh3d::default(),
@@ -84,12 +89,32 @@ fn setup(
         },
     ));
 
-    // // ground plane
-    // commands.spawn((
-    //     Mesh3d(meshes.add(Plane3d::default().mesh().size(50.0, 50.0).subdivisions(10))),
-    //     MeshMaterial3d(standard_materials.add(StandardMaterial::from_color(Srgba::GREEN))),
-    //     Transform::from_xyz(0., 0., 0.),
-    // ));
+    commands.spawn((
+        Text3d::parse_raw("~~__a lot of layers__~~").unwrap(),
+        Text3dStyling {
+            size: 64.,
+            stroke: NonZero::new(10),
+            color: Srgba::new(1., 0.0, 1., 1.),
+            stroke_color: Srgba::BLACK,
+            world_scale: Some(Vec2::splat(0.5)),
+            layer_offset: 0.1,
+            ..Default::default()
+        },
+        Mesh3d::default(),
+        MeshMaterial3d(mat.clone()),
+        Transform {
+            translation: Vec3::new(1., 1., 1.),
+            rotation: Quat::from_axis_angle(Vec3::Y, f32::to_radians(45.)),
+            scale: Vec3::ONE,
+        },
+    ));
+
+    // ground plane
+    commands.spawn((
+        Mesh3d(meshes.add(Plane3d::default().mesh().size(50.0, 50.0).subdivisions(10))),
+        MeshMaterial3d(standard_materials.add(StandardMaterial::from_color(Srgba::GREEN))),
+        Transform::from_xyz(0., 0., 0.),
+    ));
 
     commands.spawn((
         DirectionalLight {
@@ -110,5 +135,8 @@ fn setup(
         }),
         Transform::from_translation(Vec3::new(6., 4., 6.))
             .looking_at(Vec3::new(0., 0., 0.), Vec3::Y),
+        Smaa {
+            preset: SmaaPreset::Medium,
+        },
     ));
 }

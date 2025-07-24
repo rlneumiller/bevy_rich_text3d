@@ -19,7 +19,9 @@ use bevy_rectray::{
     layout::{Container, LayoutObject, ParagraphLayout, Rev, X, Y},
     Dimension, RectrayFrame, RectrayPlugin, RectrayWindow, Transform2D,
 };
-use bevy_rich_text3d::{LoadFonts, Text3d, Text3dDimensionOut, Text3dPlugin, Text3dStyling, TextAtlas};
+use bevy_rich_text3d::{
+    LoadFonts, Text3d, Text3dDimensionOut, Text3dPlugin, Text3dStyling, TextAtlas,
+};
 
 pub fn main() {
     App::new()
@@ -155,7 +157,10 @@ fn setup(mut commands: Commands, mut standard_materials: ResMut<Assets<ColorMate
     commands.spawn((
         ChildOf(layout),
         Transform2D::default(),
-        Text3d::parse_raw("__~~{f-Roboto: Different fonts ha}{f-Ponomar:ve different metrics!}~~__").unwrap(),
+        Text3d::parse_raw(
+            "__~~{f-Roboto: Different fonts ha}{f-Ponomar:ve different metrics!}~~__",
+        )
+        .unwrap(),
         Text3dStyling {
             size: 64.,
             stroke: NonZero::new(10),

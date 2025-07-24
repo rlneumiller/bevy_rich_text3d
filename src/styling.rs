@@ -52,13 +52,15 @@ pub struct Text3dStyling {
     pub stroke_in_front: bool,
     /// The shape of the stroke line joins, usually [`StrokeJoin::Round`].
     pub stroke_join: StrokeJoin,
-
+    /// Sets the distance between different layers, i.e. stroke and fill.
+    ///
+    /// `0.0` likely works for transparent render modes and opaque2d, but
+    /// not for opaque3d.
+    pub layer_offset: f32,
     /// Determines what to extract as uv1.
     pub uv1: (GlyphMeta, GlyphMeta),
-
     /// Tab in terms of spaces, default 4.
     pub tab_width: u16,
-
     /// If set, overwrite the size of `em` in the generated mesh.
     ///
     /// By default the mesh size is relative to [`Text3dStyling::size`], which is equivalent to `Some((size, size))`.
@@ -82,6 +84,7 @@ impl Default for Text3dStyling {
             fill: true,
             stroke: Default::default(),
             line_height: 1.0,
+            layer_offset: 0.01,
             stroke_in_front: false,
             stroke_join: StrokeJoin::Round,
             uv1: (GlyphMeta::Index, GlyphMeta::PerGlyphAdvance),
