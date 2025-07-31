@@ -62,11 +62,12 @@ impl<'t> ExtractedMesh<'t> {
         let uv1 = recycle_mesh!(mesh, ATTRIBUTE_UV_1, Float32x2);
         let colors = recycle_mesh!(mesh, ATTRIBUTE_COLOR, Float32x4);
 
-        let indices = if let Some(Indices::U16(indices)) = mesh.remove_indices() {
+        let mut indices = if let Some(Indices::U16(indices)) = mesh.remove_indices() {
             indices
         } else {
             Vec::new()
         };
+        indices.clear();
         ExtractedMesh {
             mesh,
             positions,
