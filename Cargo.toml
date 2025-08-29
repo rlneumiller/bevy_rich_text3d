@@ -1,6 +1,6 @@
 [package]
 name = "bevy_rich_text3d"
-version = "0.4.1"
+version = "0.4.2"
 edition = "2021"
 
 authors = ["Mincong Lu <mintlux667@gmail.com>"]
